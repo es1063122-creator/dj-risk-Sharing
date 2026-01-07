@@ -67,6 +67,7 @@ button:disabled{
   height:200px;
   background:#fff;
   margin-top:10px;
+  touch-action: none; /* 추가: 브라우저 제스처 차단 */
 }
 </style>
 </head>
@@ -200,25 +201,49 @@ const endBtn = document.getElementById("endBtn");
 
 let todayRisks = [];
 
-/* 서명 준비 */
+/* ==========================================================
+   🔥 서명 기능 (모바일 스크롤 차단 포함)
+========================================================== */
 function setupSignature(canvasId, clearBtnId){
   const canvas = document.getElementById(canvasId);
   const ctx = canvas.getContext("2d");
   let drawing = false;
 
+  /* PC 마우스 */
   canvas.addEventListener("mousedown", ()=>drawing=true);
   canvas.addEventListener("mouseup", ()=>{drawing=false;ctx.beginPath();});
   canvas.addEventListener("mousemove", draw);
 
-  canvas.addEventListener("touchstart", ()=>drawing=true);
-  canvas.addEventListener("touchend", ()=>{drawing=false;ctx.beginPath();});
-  canvas.addEventListener("touchmove", draw);
+  /* 모바일 터치 — 스크롤 방지 & passive: false */
+  canvas.addEventListener("touchstart", (e)=>{
+    e.preventDefault();
+    document.body.style.overflow = "hidden"; // 스크롤 차단
+    drawing = true;
+  }, { passive: false });
 
+  canvas.addEventListener("touchend", (e)=>{
+    e.preventDefault();
+    drawing = false;
+    ctx.beginPath();
+    document.body.style.overflow = "auto"; // 스크롤 복원
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", (e)=>{
+    e.preventDefault();
+    draw(e);
+  }, { passive: false });
+
+  /* 그리기 함수 */
   function draw(e){
     if(!drawing) return;
+
     const rect = canvas.getBoundingClientRect();
-    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#000";
@@ -228,6 +253,7 @@ function setupSignature(canvasId, clearBtnId){
     ctx.moveTo(x, y);
   }
 
+  // 지우기 버튼
   document.getElementById(clearBtnId).onclick = ()=>{
     ctx.clearRect(0,0,canvas.width,canvas.height);
   };
@@ -238,7 +264,9 @@ function setupSignature(canvasId, clearBtnId){
 const getStartSignature = setupSignature("signStart","clearStartSign");
 const getEndSignature = setupSignature("signEnd","clearEndSign");
 
-/* 위험요인 불러오기 */
+/* ==========================================================
+   위험요인 불러오기
+========================================================== */
 async function loadRisks(){
   riskBox.innerHTML="불러오는 중...";
   startBtn.disabled = true;
@@ -292,7 +320,7 @@ async function loadRisks(){
   });
 }
 
-/* 위험요인 전체 확인 */
+/* 전체 위험요인 체크 */
 confirmAll.onchange=()=>{
   if(confirmAll.checked){
     document.querySelectorAll(".riskChk").forEach(c=>c.checked=true);
@@ -302,7 +330,7 @@ confirmAll.onchange=()=>{
   }
 };
 
-/* 날짜 변경 시 자동 로드 */
+/* 날짜 선택시 자동 로드 */
 workDate.onchange = loadRisks;
 
 /* 🔥 작업 시작 저장 */
@@ -351,10 +379,9 @@ endBtn.onclick=async ()=>{
   document.getElementById("endMsg").innerText="무사고로 작업을 종료했습니다.";
 };
 
-/* 
-  🔥 자동 복구 기능: 페이지 로드 + 입력값 변경 시 작동 
-  - 날짜/이름/생년월일이 입력되면 기존 작업 자동 검색
-*/
+/* ==========================================================
+   🔥 자동 복구 기능
+========================================================== */
 async function tryRecoverSession(){
   if(!siteId.value || !workDate.value || !workerName.value || !birth.value) return;
 
@@ -366,12 +393,9 @@ async function tryRecoverSession(){
 
   const data = snap.data();
 
-  /* ----------------------------
-     🔥 위험요인 UI 재구성
-  -----------------------------*/
+  /* 위험요인 UI 복원 */
   if(data.risks){
-    todayRisks = data.risks; // 재할당
-
+    todayRisks = data.risks;
     riskBox.innerHTML = "";
     data.risks.forEach(r=>{
       const div=document.createElement("div");
@@ -387,14 +411,11 @@ async function tryRecoverSession(){
       riskBox.appendChild(div);
     });
 
-    // 전체확인 자동 체크
     confirmAll.checked = true;
     startBtn.disabled = false;
   }
 
-  /* ----------------------------
-     🔥 시작 서명 복원
-  -----------------------------*/
+  /* 시작 서명 복원 */
   if(data.startSignature){
     const canvas = document.getElementById("signStart");
     const ctx = canvas.getContext("2d");
@@ -403,9 +424,7 @@ async function tryRecoverSession(){
     img.src = data.startSignature;
   }
 
-  /* ----------------------------
-     🔥 종료 서명 복원
-  -----------------------------*/
+  /* 종료 서명 복원 */
   if(data.endSignature){
     const canvas2 = document.getElementById("signEnd");
     const ctx2 = canvas2.getContext("2d");
@@ -414,14 +433,11 @@ async function tryRecoverSession(){
     img2.src = data.endSignature;
   }
 
-  /* ----------------------------
-     🔥 종료 상태 반영
-  -----------------------------*/
+  /* 종료 상태 표시 */
   if(data.startSignature && !data.endSignature){
     document.getElementById("startMsg").innerText =
       "이전에 작업을 시작했습니다. 아래에서 작업 종료 처리를 하세요.";
     endSection.style.display = "block";
-    scrollTo(0, document.body.scrollHeight);
   }
 
   if(data.endSignature){
@@ -432,10 +448,10 @@ async function tryRecoverSession(){
   }
 }
 
-/* 페이지 로딩 시 복구 시도 */
+/* 페이지 로딩 시 자동복구 */
 window.addEventListener("load", tryRecoverSession);
 
-/* 입력 변경 시마다 복구 시도 */
+/* 입력 변경 시 자동복구 */
 workerName.addEventListener("change", tryRecoverSession);
 birth.addEventListener("change", tryRecoverSession);
 workDate.addEventListener("change", tryRecoverSession);
