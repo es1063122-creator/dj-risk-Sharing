@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>근로자 작업 기록 | dj-safety</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  background:#f4f7ff;
+  color:#0b1b3b;
+}
+main{max-width:900px;margin:20px auto;padding:0 16px}
+.card{
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,64,128,.12);
+  padding:20px;
+  margin-bottom:20px
+}
+h2{margin:0 0 12px}
+label{font-size:13px;font-weight:700;color:#555;display:block;margin-top:12px}
+input, select, textarea{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:10px;
+  border:1px solid #cdd9ff
+}
+textarea{min-height:80px}
+.risk{
+  border:1px solid #cdd9ff;
+  border-radius:12px;
+  padding:12px;
+  margin-top:10px;
+  background:#f9fbff;
+}
+button{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:16px;
+  font-weight:900;
+  background:#004080;
+  color:#fff;
+  cursor:pointer;
+  margin-top:20px
+}
+button:disabled{
+  background:#94a3b8;
+  cursor:not-allowed
+}
+.notice{
+  text-align:center;
+  font-weight:800;
+  color:#004080;
+  margin-top:20px
+}
+.signature-pad{
+  border:2px dashed #004080;
+  border-radius:10px;
+  width:100%;
+  height:200px;
+  background:#fff;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<!-- 근로자 정보 -->
+<div class="card">
+  <h2>근로자 정보</h2>
+
+  <label>현장 ID</label>
+  <input id="siteId" value="paju">
+
+  <label>작업 날짜</label>
+  <input id="workDate" type="date">
+
+  <label>이름</label>
+  <input id="workerName">
+
+  <label>생년월일 (예: 80.02.04)</label>
+  <input id="birth" type="text" maxlength="8" placeholder="80.02.04">
+
+  <label>직종(공종)</label>
+  <select id="jobType">
+    <option value="">선택하세요</option>
+    <option>보통인부</option>
+    <option>용접</option>
+    <option>철근</option>
+    <option>목수</option>
+    <option>관로</option>
+    <option>경계석</option>
+    <option>보도블록</option>
+    <option>포장</option>
+    <option>차수</option>
+    <option>장비</option>
+  </select>
+</div>
+
+<!-- 위험요인 목록 -->
+<div class="card">
+  <h2>금일 적용 위험요인</h2>
+
+  <div id="riskBox">현장/날짜를 선택하세요</div>
+
+  <div style="margin-top:20px;padding:12px;border:2px solid #004080;border-radius:12px;background:#eef4ff;">
+    <label>
+      <input type="checkbox" id="confirmAll">
+      <b>위의 모든 위험요인을 확인했습니다.</b>
+    </label>
+  </div>
+</div>
+
+<!-- 작업 시작 -->
+<div class="card">
+  <h2>작업 시작 서약</h2>
+  <p>본인은 금일 작업 전 위험요인을 모두 확인하였으며 안전수칙을 준수할 것을 서약합니다.</p>
+
+  <label>서명 (손가락/마우스로 입력)</label>
+  <canvas id="signStart" class="signature-pad"></canvas>
+  <button id="clearStartSign">서명 지우기</button>
+
+  <button id="startBtn" disabled>작업 시작</button>
+  <div id="startMsg" class="notice"></div>
+</div>
+
+<!-- 작업 종료 -->
+<div class="card" id="endSection" style="display:none">
+  <h2>작업 종료</h2>
+
+  <p>금일 작업은 안전사고 없이 정상적으로 종료되었으며 잔여 위험요인을 제거 완료하였습니다.</p>
+
+  <label>금일 특이사항</label>
+  <textarea id="specialNote"></textarea>
+
+  <label>건의사항</label>
+  <textarea id="suggestion"></textarea>
+
+  <label>작업 종료 서명</label>
+  <canvas id="signEnd" class="signature-pad"></canvas>
+  <button id="clearEndSign">서명 지우기</button>
+
+  <button id="endBtn">무사고 종료 확인</button>
+  <div id="endMsg" class="notice"></div>
+</div>
+
+</main>
+
+<script type="module">
+
+/* 생년월일 자동 포맷 */
+const birthInput = document.getElementById("birth");
+birthInput.addEventListener("input", () => {
+  let v = birthInput.value.replace(/[^\d]/g, "");
+  if(v.length >= 6){
+    birthInput.value = v.slice(0,2) + "." + v.slice(2,4) + "." + v.slice(4,6);
+  }
+});
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* Firebase 설정 */
+const firebaseConfig = {
+  apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain: "dj-safety.firebaseapp.com",
+  projectId: "dj-safety"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* DOM 요소 */
+const siteId = document.getElementById("siteId");
+const workDate = document.getElementById("workDate");
+const jobType = document.getElementById("jobType");
+const workerName = document.getElementById("workerName");
+const birth = document.getElementById("birth");
+const riskBox = document.getElementById("riskBox");
+const confirmAll = document.getElementById("confirmAll");
+const startBtn = document.getElementById("startBtn");
+const endSection = document.getElementById("endSection");
+const endBtn = document.getElementById("endBtn");
+
+let todayRisks = [];
+
+/* 서명 준비 */
+function setupSignature(canvasId, clearBtnId){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+
+  canvas.addEventListener("mousedown", ()=>drawing=true);
+  canvas.addEventListener("mouseup", ()=>{drawing=false;ctx.beginPath();});
+  canvas.addEventListener("mousemove", draw);
+
+  canvas.addEventListener("touchstart", ()=>drawing=true);
+  canvas.addEventListener("touchend", ()=>{drawing=false;ctx.beginPath();});
+  canvas.addEventListener("touchmove", draw);
+
+  function draw(e){
+    if(!drawing) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  document.getElementById(clearBtnId).onclick = ()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  };
+
+  return ()=>canvas.toDataURL();
+}
+
+const getStartSignature = setupSignature("signStart","clearStartSign");
+const getEndSignature = setupSignature("signEnd","clearEndSign");
+
+/* 위험요인 불러오기 (직종 필터 제거됨) */
+async function loadRisks(){
+  riskBox.innerHTML="불러오는 중...";
+  startBtn.disabled = true;
+  confirmAll.checked = false;
+  todayRisks = [];
+
+  if(!siteId.value || !workDate.value){
+    riskBox.innerHTML="현장/날짜를 선택하세요";
+    return;
+  }
+
+  const selectedDate = new Date(workDate.value);
+  const snap = await getDocs(collection(db,"sites",siteId.value,"riskSets"));
+
+  riskBox.innerHTML="";
+
+  snap.forEach(docu=>{
+    const d = docu.data();
+    const start = new Date(d.startDate);
+    const end = new Date(d.endDate);
+
+    if(selectedDate >= start && selectedDate <= end){
+      /* ⬇️ 직종 필터 제거 — 날짜만 맞으면 모든 위험요인 표시 */
+      (d.risks || []).forEach(r => todayRisks.push(r));
+    }
+  });
+
+  if(todayRisks.length===0){
+    riskBox.innerHTML="적용 중 위험요인 없음";
+    return;
+  }
+
+  todayRisks.forEach(r=>{
+    const div=document.createElement("div");
+    div.className="risk";
+    div.innerHTML=`
+      <label>
+        <input type="checkbox" class="riskChk">
+        <b>${r.category}</b><br>
+        ${r.detail}<br>
+        <i>${r.counter}</i>
+      </label>
+    `;
+    riskBox.appendChild(div);
+  });
+
+  document.querySelectorAll(".riskChk").forEach(c=>{
+    c.onchange=()=>{
+      confirmAll.checked=false;
+      startBtn.disabled=true;
+    };
+  });
+}
+
+/* 위험요인 전체 확인 */
+confirmAll.onchange=()=>{
+  if(confirmAll.checked){
+    document.querySelectorAll(".riskChk").forEach(c=>c.checked=true);
+    startBtn.disabled=false;
+  }else{
+    startBtn.disabled=true;
+  }
+};
+
+/* 날짜 변경 시 자동 로드 */
+workDate.onchange = loadRisks;
+
+/* 작업 시작 저장 */
+startBtn.onclick=async ()=>{
+  if(!workerName.value || !birth.value){
+    alert("이름과 생년월일을 입력하세요");
+    return;
+  }
+
+  const key = `${workDate.value}_${workerName.value}_${birth.value}`;
+
+  await setDoc(
+    doc(db,"sites",siteId.value,"workerLogs",key),
+    {
+      siteId: siteId.value,
+      date: workDate.value,
+      name: workerName.value,
+      birth: birth.value,
+      jobType: jobType.value,
+      risks: todayRisks,
+      confirmAll: true,
+      startSignature: getStartSignature(),
+      startAt: serverTimestamp()
+    }
+  );
+
+  document.getElementById("startMsg").innerText="오늘도 안전작업하세요!";
+  endSection.style.display="block";
+};
+
+/* 작업 종료 저장 */
+endBtn.onclick=async ()=>{
+  const key = `${workDate.value}_${workerName.value}_${birth.value}`;
+
+  await setDoc(
+    doc(db,"sites",siteId.value,"workerLogs",key),
+    {
+      specialNote: document.getElementById("specialNote").value,
+      suggestion: document.getElementById("suggestion").value,
+      endSignature: getEndSignature(),
+      endAt: serverTimestamp()
+    },
+    { merge:true }
+  );
+
+  document.getElementById("endMsg").innerText="무사고로 작업을 종료했습니다.";
+};
+
+</script>
+</body>
+</html>
