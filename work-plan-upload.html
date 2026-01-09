@@ -2,12 +2,130 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>동진건설 작업계획서 업로드/다운로드 (Firebase)</title>
+  <title>동진건설 작업계획서 업로드/다운로드</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Firebase SDK (compat 버전) -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-storage-compat.js"></script>
+  <!-- Firebase SDK (모듈 버전) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+      getStorage, ref, uploadBytes, listAll, getDownloadURL, deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPP-hf5ja5zvSBPTgLt-a2fVzgbh3cfg0",
+      authDomain: "dongjin-workplan.firebaseapp.com",
+      projectId: "dongjin-workplan",
+      storageBucket: "dongjin-workplan.firebasestorage.app",
+      messagingSenderId: "311423263390",
+      appId: "1:311423263390:web:0e73f2d0128bce529f518f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    // =========================================================
+    // 🔥 재귀적으로 전체 파일 리스트 가져오기
+    // =========================================================
+    async function listAllFilesRecursively(folderRef, fileList = []) {
+      const result = await listAll(folderRef);
+
+      result.items.forEach(item => fileList.push(item));
+
+      for (const prefix of result.prefixes) {
+        await listAllFilesRecursively(prefix, fileList);
+      }
+
+      return fileList;
+    }
+
+    // =========================================================
+    // 🔥 업로드 기능
+    // =========================================================
+    window.uploadFile = async function () {
+      const date = document.getElementById("dateInput").value;
+      const type = document.getElementById("typeInput").value;
+      const number = document.getElementById("numberInput").value;
+      const file = document.getElementById("fileInput").files[0];
+
+      if (!date || !type || !number || !file) {
+        alert("작성일자, 장비종류, 장비번호, 파일을 모두 입력/선택하세요.");
+        return;
+      }
+
+      const safeNumber = number.replace(/\s+/g, "_");
+      const filePath = `${date}/${type}/${safeNumber}_${file.name}`;
+      const fileRef = ref(storage, filePath);
+
+      try {
+        await uploadBytes(fileRef, file);
+        alert("📤 Firebase Storage 업로드 완료!");
+        loadFileList();
+      } catch (err) {
+        console.error("업로드 오류:", err);
+        alert("업로드 중 오류 발생! 콘솔을 확인하세요.");
+      }
+    };
+
+    // =========================================================
+    // 🔥 파일 삭제 기능 추가
+    // =========================================================
+    window.deleteFile = async function (filePath) {
+      if (!confirm("정말 이 파일을 삭제하시겠습니까?")) return;
+
+      const fileRef = ref(storage, filePath);
+
+      try {
+        await deleteObject(fileRef);
+        alert("🗑 파일이 삭제되었습니다.");
+        loadFileList();
+      } catch (err) {
+        console.error("삭제 오류:", err);
+        alert("삭제 중 오류가 발생했습니다. 콘솔 확인해주세요.");
+      }
+    };
+
+    // =========================================================
+    // 🔥 파일 목록 표시 (삭제 버튼 포함)
+    // =========================================================
+    async function loadFileList() {
+      const listDiv = document.getElementById("fileList");
+      listDiv.innerHTML = "<h3>📂 업로드된 작업계획서 목록</h3>";
+
+      const rootRef = ref(storage, "/");
+
+      try {
+        const allFiles = await listAllFilesRecursively(rootRef);
+
+        if (allFiles.length === 0) {
+          listDiv.innerHTML += "<p>아직 업로드된 파일이 없습니다.</p>";
+          return;
+        }
+
+        for (const item of allFiles) {
+          const url = await getDownloadURL(item);
+
+          listDiv.innerHTML += `
+            <div class="file-item">
+              <div class="file-meta">${item.fullPath}</div>
+              <div>
+                <a class="download-btn" href="${url}" target="_blank">다운로드</a>
+                <button class="delete-btn" onclick="deleteFile('${item.fullPath}')">삭제</button>
+              </div>
+            </div>
+          `;
+        }
+
+      } catch (err) {
+        console.error("목록 불러오기 오류:", err);
+        listDiv.innerHTML += "<p>목록을 불러오지 못했습니다.</p>";
+      }
+    }
+
+    // 페이지 로드 시 자동 실행
+    loadFileList();
+  </script>
 
   <style>
     body{
@@ -26,183 +144,73 @@
     }
     h1{
       text-align:center;
-      margin-bottom:20px;
       color:#003a7a;
       font-size:22px;
+      margin-bottom:20px;
     }
-    label{
-      display:block;
-      font-weight:600;
-      margin-top:10px;
-      margin-bottom:4px;
-      font-size:14px;
-    }
+    label{ font-weight:600; margin-top:10px; display:block; }
     input, select{
-      width:100%;
-      padding:10px;
-      font-size:15px;
-      border-radius:8px;
-      border:1px solid #ccc;
-      box-sizing:border-box;
+      width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;
+      font-size:15px; box-sizing:border-box;
     }
     .btn{
-      width:100%;
-      margin-top:16px;
-      padding:14px;
-      background:#004aad;
-      border:none;
-      color:#fff;
-      font-size:17px;
-      border-radius:10px;
-      cursor:pointer;
-      font-weight:600;
+      width:100%; margin-top:20px; padding:14px;
+      background:#004aad; border:none; color:#fff; font-size:17px;
+      border-radius:10px; cursor:pointer; font-weight:600;
     }
     .btn:hover{ background:#003a7a; }
 
-    .file-list{
-      margin-top:24px;
-    }
+    .file-list{ margin-top:30px; }
     .file-item{
-      background:#f3f6ff;
-      border-radius:10px;
-      padding:10px 14px;
-      margin-bottom:8px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      font-size:14px;
+      background:#f3f6ff; padding:12px 14px; margin-bottom:10px; border-radius:10px;
+      display:flex; justify-content:space-between; align-items:center; font-size:14px;
     }
-    .file-meta{
-      max-width:70%;
-      word-break:break-all;
-    }
+    .file-meta{ max-width:60%; word-break:break-all; }
     .download-btn{
-      background:#007bff;
-      color:#fff;
-      padding:8px 12px;
-      border-radius:6px;
-      text-decoration:none;
-      font-size:13px;
-      white-space:nowrap;
+      background:#007bff; color:#fff; padding:8px 12px; border-radius:6px;
+      text-decoration:none; font-size:13px;
     }
-    .badge{
-      display:inline-block;
-      padding:4px 8px;
-      border-radius:999px;
-      background:#e5efff;
-      color:#004aad;
-      font-size:11px;
-      margin-bottom:8px;
+    .delete-btn{
+      background:#dc3545; color:#fff; padding:8px 12px; border:none;
+      font-size:13px; border-radius:6px; cursor:pointer; margin-left:6px;
     }
   </style>
+
 </head>
 <body>
+
   <div class="container">
+
     <h1>동진건설 작업계획서 업로드/다운로드</h1>
-    <div class="badge">Firebase Storage 연동 버전</div>
 
     <label>작성일자</label>
-    <input type="date" id="dateInput" />
+    <input type="date" id="dateInput">
 
     <label>장비종류</label>
     <select id="typeInput">
       <option value="">선택하세요</option>
       <option>굴착기</option>
       <option>지게차</option>
+      <option>로더</option>
+      <option>바브켓</option>
+      <option>항타기</option>
       <option>크레인</option>
       <option>덤프</option>
+      <option>포장장비</option>
       <option>기타 건설기계</option>
     </select>
 
     <label>장비번호</label>
-    <input type="text" id="numberInput" placeholder="예: 01가1234" />
+    <input type="text" id="numberInput" placeholder="예: 01가1234">
 
     <label>작업계획서 파일(PDF, PPT, 이미지 등)</label>
-    <input type="file" id="fileInput" />
+    <input type="file" id="fileInput">
 
     <button class="btn" onclick="uploadFile()">Firebase Storage에 업로드</button>
 
     <div class="file-list" id="fileList"></div>
+
   </div>
 
-  <script>
-    // 🔥 여기는 당신이 준 firebaseConfig 그대로 사용 (storageBucket은 반드시 appspot.com!)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDPP-hf5ja5zvSBPTgLt-a2fVzgbh3cfg0",
-      authDomain: "dongjin-workplan.firebaseapp.com",
-      projectId: "dongjin-workplan",
-      storageBucket: "dongjin-workplan.appspot.com",
-      messagingSenderId: "311423263390",
-      appId: "1:311423263390:web:0e73f2d0128bce529f518f",
-      measurementId: "G-X07JRW8ET3"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const storage = firebase.storage();
-
-    // 업로드
-    function uploadFile() {
-      const date = document.getElementById("dateInput").value;
-      const type = document.getElementById("typeInput").value;
-      const number = document.getElementById("numberInput").value;
-      const file = document.getElementById("fileInput").files[0];
-
-      if (!date || !type || !number || !file) {
-        alert("작성일자, 장비종류, 장비번호, 파일을 모두 입력/선택하세요.");
-        return;
-      }
-
-      const safeNumber = number.replace(/\s+/g, "_");
-      const filePath = `${date}/${type}/${safeNumber}_${file.name}`;
-
-      const storageRef = storage.ref(filePath);
-
-      storageRef.put(file)
-        .then(() => {
-          alert("Firebase Storage 업로드 완료!");
-          loadFileList();
-        })
-        .catch(err => {
-          console.error("업로드 오류:", err);
-          alert("업로드 중 오류가 발생했습니다.\n콘솔(F12)을 열어 오류 메시지를 알려주세요.");
-        });
-    }
-
-    // 목록 읽기
-    function loadFileList() {
-      const listDiv = document.getElementById("fileList");
-      listDiv.innerHTML = "<h3>📂 업로드된 작업계획서 목록</h3>";
-
-      const rootRef = storage.ref();
-
-      rootRef.listAll()
-        .then(res => {
-          if (res.items.length === 0) {
-            listDiv.innerHTML += "<p>아직 업로드된 파일이 없습니다.</p>";
-            return;
-          }
-
-          res.items.forEach(itemRef => {
-            itemRef.getDownloadURL().then(url => {
-              const path = itemRef.fullPath; // 예: 2026-01-09/굴착기/01가1234_계획서.pptx
-
-              listDiv.innerHTML += `
-                <div class="file-item">
-                  <div class="file-meta">${path}</div>
-                  <a class="download-btn" href="${url}" target="_blank">다운로드</a>
-                </div>
-              `;
-            });
-          });
-        })
-        .catch(err => {
-          console.error("목록 불러오기 오류:", err);
-          listDiv.innerHTML += "<p>목록을 불러오지 못했습니다. 콘솔 오류를 확인해주세요.</p>";
-        });
-    }
-
-    // 처음 로딩 시 목록 표시
-    loadFileList();
-  </script>
 </body>
 </html>
