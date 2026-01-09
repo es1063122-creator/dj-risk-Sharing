@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>장비운전원 작업 기록 | dj-safety</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  background:#f4f7ff;
+  color:#0b1b3b;
+}
+main{max-width:900px;margin:20px auto;padding:0 16px}
+.card{
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,64,128,.12);
+  padding:20px;
+  margin-bottom:20px
+}
+h2{margin:0 0 12px}
+label{font-size:14px;font-weight:700;color:#555;display:block;margin-top:12px}
+input, select{
+  width:100%;
+  padding:12px;
+  border:1px solid #d9e2ef;
+  border-radius:8px;
+  margin-top:6px;
+  font-size:17px;
+}
+.download-plan-btn{
+  width:100%;
+  padding:16px;
+  background:#007bff;
+  color:#fff;
+  border-radius:10px;
+  border:none;
+  font-size:17px;
+  font-weight:700;
+  margin-top:20px;
+  cursor:pointer;
+}
+.workplan-item{
+  background:#eef4ff;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+  font-size:14px;
+}
+.workplan-item a{
+  color:#004bff;
+  text-decoration:none;
+  margin-left:10px;
+}
+.link-btn{
+  width:100%;
+  padding:16px;
+  background:#004b9e;
+  border:none;
+  border-radius:10px;
+  color:white;
+  font-size:17px;
+  font-weight:700;
+  margin-top:15px;
+}
+.risk{
+  border:1px solid #cdd9ff;
+  border-radius:12px;
+  padding:14px;
+  background:#f9fbff;
+  margin-bottom:10px;
+}
+.signature-pad{
+  border:2px dashed #004080;
+  border-radius:10px;
+  width:100%;
+  height:220px;
+  background:#fff;
+  margin-top:10px;
+  touch-action:none;
+}
+.notice{
+  margin-top:15px;
+  text-align:center;
+  font-weight:700;
+  color:#004080;
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<!-- 기본 정보 -->
+<div class="card">
+  <h2>장비운전원 기본정보</h2>
+
+  <label>현장 ID</label>
+  <input id="siteId" value="paju">
+
+  <label>오늘 날짜</label>
+  <input id="workDate" readonly style="background:#eef0f7;">
+
+  <label>운전원 이름</label>
+  <input id="operatorName">
+
+  <label>장비 종류</label>
+  <select id="equipmentType">
+    <option value="">선택</option>
+    <option>굴착기</option>
+    <option>지게차</option>
+    <option>크레인</option>
+    <option>덤프트럭</option>
+    <option>로더</option>
+  </select>
+
+  <label>장비 번호</label>
+  <input id="equipmentId" placeholder="예: 05가1234">
+</div>
+
+<!-- 장비번호 끝4자리 작업계획서 불러오기 -->
+<button class="download-plan-btn" onclick="loadWorkplanByEquipment()">
+  📄 해당 장비번호 작업계획서 불러오기
+</button>
+
+<div id="workplanList" style="margin-top:15px;"></div>
+
+<!-- 위험요인 -->
+<div class="card">
+  <h2>금일 적용 위험요인</h2>
+  <div id="riskBox">불러오는 중...</div>
+
+  <label style="margin-top:20px">
+    <input type="checkbox" id="confirmAll">
+    <b>위의 모든 위험요인을 확인했습니다.</b>
+  </label>
+
+  <!-- 장비점검 버튼 -->
+  <button class="link-btn"
+          onclick="window.open('https://script.google.com/macros/s/AKfycbzZdmNLASZxzzf_tQLGQDhJZaB2YHXhaK3zxlcqpiZJPifm58FTw6_ZPHj_VGGdftxf/exec','_blank')">
+    🛠 장비점검 바로가기
+  </button>
+</div>
+
+<!-- 작업 시작 -->
+<div class="card">
+  <h2>작업 시작 서명</h2>
+  <canvas id="signStart" class="signature-pad"></canvas>
+  <button class="link-btn" id="clearStart">서명 지우기</button>
+  <button class="link-btn" id="startBtn" disabled>작업 시작</button>
+  <div id="startMsg" class="notice"></div>
+</div>
+
+<!-- 작업 종료 -->
+<div class="card" id="endSection" style="display:none;">
+  <h2>작업 종료</h2>
+  <canvas id="signEnd" class="signature-pad"></canvas>
+  <button class="link-btn" id="clearEnd">서명 지우기</button>
+  <button class="link-btn" id="endBtn">작업 종료 제출</button>
+  <div id="endMsg" class="notice"></div>
+</div>
+
+</main>
+
+
+<script type="module">
+
+// 오늘 날짜 자동 설정
+document.getElementById("workDate").value = new Date().toISOString().split("T")[0];
+
+
+// ================= Firebase Setting =================
+
+// Firestore는 dj-safety (riskSets 불러오는 DB)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getFirestore, collection, getDocs, doc, setDoc, getDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Storage는 dongjin-workplan (작업계획서 관리)
+import {
+  getStorage, ref, listAll, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+
+// Firestore 연결 (worker-log와 동일)
+const fireDbApp = initializeApp({
+  apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain: "dj-safety.firebaseapp.com",
+  projectId: "dj-safety"
+}, "fireDB");
+
+const db = getFirestore(fireDbApp);
+
+
+// Storage 연결 (작업계획서 전용)
+const storageApp = initializeApp({
+  apiKey: "AIzaSyDPP-hf5ja5zvSBPTgLt-a2fVzgbh3cfg0",
+  authDomain: "dongjin-workplan.firebaseapp.com",
+  projectId: "dongjin-workplan",
+  storageBucket: "dongjin-workplan.firebasestorage.app"
+}, "storageDB");
+
+const storage = getStorage(storageApp);
+
+
+
+// ================= 작업계획서 불러오기 =================
+window.loadWorkplanByEquipment = async function () {
+  const equipmentId = document.getElementById("equipmentId").value.trim();
+  const listDiv = document.getElementById("workplanList");
+
+  if (!equipmentId || equipmentId.length < 4) {
+    alert("장비번호 끝 4자리를 포함하여 입력하세요.");
+    return;
+  }
+
+  const last4 = equipmentId.slice(-4);
+  listDiv.innerHTML = "불러오는 중...";
+
+  try {
+    const rootRef = ref(storage, "/");
+    const allDates = await listAll(rootRef);
+
+    let matched = [];
+
+    for (const dateFolder of allDates.prefixes) {
+      const typeFolders = await listAll(dateFolder);
+
+      for (const typeFolder of typeFolders.prefixes) {
+        const fileList = await listAll(typeFolder);
+
+        fileList.items.forEach(item => {
+          if (item.fullPath.includes(last4)) {
+            matched.push(item);
+          }
+        });
+      }
+    }
+
+    if (matched.length === 0) {
+      listDiv.innerHTML = "해당 장비번호 작업계획서 없음";
+      return;
+    }
+
+    listDiv.innerHTML = "";
+    matched.forEach(async item => {
+      const url = await getDownloadURL(item);
+      listDiv.innerHTML += `
+        <div class="workplan-item">
+          ${item.fullPath}
+          <a href="${url}" target="_blank">다운로드</a>
+        </div>`;
+    });
+
+  } catch (e) {
+    console.error(e);
+    listDiv.innerHTML = "목록 불러오기 실패";
+  }
+};
+
+
+
+// ================= 위험요인 불러오기 =================
+let todayRisks = [];
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (typeof value === "string") return new Date(value);
+  if (typeof value === "number") return new Date(value);
+  return null;
+}
+
+async function loadRisks() {
+  riskBox.innerHTML = "불러오는 중...";
+  confirmAll.checked = false;
+  startBtn.disabled = true;
+  todayRisks = [];
+
+  const selected = new Date(workDate.value);
+
+  const snap = await getDocs(collection(db, "sites", siteId.value, "riskSets"));
+  riskBox.innerHTML = "";
+
+  snap.forEach(docu => {
+    const d = docu.data();
+    const start = toDate(d.startDate);
+    const end   = toDate(d.endDate);
+
+    if (selected >= start && selected <= end) {
+      (d.risks || []).forEach(r => todayRisks.push(r));
+    }
+  });
+
+  if (todayRisks.length===0){
+    riskBox.innerHTML="금일 위험요인 없음";
+    return;
+  }
+
+  todayRisks.forEach(r=>{
+    riskBox.innerHTML += `
+      <div class="risk">
+        <label>
+          <input type="checkbox" class="riskChk">
+          <b>${r.category}</b><br>${r.detail}<br><i>${r.counter}</i>
+        </label>
+      </div>`;
+  });
+
+  document.querySelectorAll(".riskChk").forEach(chk=>{
+    chk.onchange=()=>{
+      confirmAll.checked=false;
+      startBtn.disabled=true;
+    };
+  });
+}
+
+workDate.onchange = loadRisks;
+loadRisks();
+
+
+
+// ================= 서명 기능 =================
+function signPad(id, clearId) {
+  const cv = document.getElementById(id);
+  const ctx = cv.getContext("2d");
+  let draw = false;
+
+  cv.addEventListener("mousedown", ()=> draw=true);
+  cv.addEventListener("mouseup", ()=> {draw=false;ctx.beginPath();});
+  cv.addEventListener("mousemove", (e)=>paint(e,false));
+
+  cv.addEventListener("touchstart", (e)=>{e.preventDefault();draw=true;},{passive:false});
+  cv.addEventListener("touchend", (e)=>{e.preventDefault();draw=false;ctx.beginPath();},{passive:false});
+  cv.addEventListener("touchmove", (e)=>{e.preventDefault();paint(e,true);},{passive:false});
+
+  function paint(e,isTouch){
+    if(!draw) return;
+    const r=cv.getBoundingClientRect();
+    const x=isTouch?e.touches[0].clientX-r.left:e.clientX-r.left;
+    const y=isTouch?e.touches[0].clientY-r.top:e.clientY-r.top;
+
+    ctx.lineWidth=2;
+    ctx.lineCap="round";
+    ctx.strokeStyle="#000";
+    ctx.lineTo(x,y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+  }
+
+  document.getElementById(clearId).onclick=()=>ctx.clearRect(0,0,cv.width,cv.height);
+
+  return ()=>cv.toDataURL();
+}
+
+const startSign = signPad("signStart","clearStart");
+const endSign   = signPad("signEnd","clearEnd");
+
+
+// ================= 작업 시작 저장 =================
+document.getElementById("startBtn").onclick = async () => {
+  const name = operatorName.value;
+  if (!name) { alert("이름 입력"); return; }
+
+  const key = `${workDate.value}_${name}`;
+
+  await setDoc(doc(db,"sites",siteId.value,"equipmentLogs",key),{
+    operatorName:name,
+    equipmentId:equipmentId.value,
+    equipmentType:equipmentType.value,
+    risks:todayRisks,
+    startSignature:startSign(),
+    startAt:serverTimestamp()
+  });
+
+  startMsg.innerText="작업 시작 완료";
+  endSection.style.display="block";
+};
+
+
+// ================= 작업 종료 저장 =================
+document.getElementById("endBtn").onclick = async () => {
+  const name = operatorName.value;
+  const key = `${workDate.value}_${name}`;
+
+  await setDoc(doc(db,"sites",siteId.value,"equipmentLogs",key),{
+    endSignature:endSign(),
+    endAt:serverTimestamp()
+  },{merge:true});
+
+  endMsg.innerText="작업 종료 완료";
+};
+
+</script>
+</body>
+</html>
