@@ -189,6 +189,10 @@ button:hover{opacity:.9}
     <button class="top-btn" onclick="location.href='admin-check-dashboard.html'">근로자 확인 현황</button>
     <button class="top-btn" onclick="goRiskList()">위험요인 등록 현황</button>
     <button class="top-btn" onclick="goRiskAdmin()">위험요인 등록</button>
+
+    <!-- 🔥 추가된 부분: 작업계획서 업로드 버튼 -->
+    <button class="top-btn" onclick="goWorkPlan()">작업계획서 업로드</button>
+
     <button class="top-btn" onclick="location.href='index.html'">홈으로</button>
   </div>
 </header>
@@ -202,7 +206,7 @@ button:hover{opacity:.9}
   <div class="row">
     <div class="field">
       <label>현장 ID</label>
-      <input id="siteId" placeholder="paju">
+      <input id="siteId" value="paju" disabled>
     </div>
 
     <div class="field">
@@ -263,6 +267,7 @@ button:hover{opacity:.9}
 
 </main>
 
+<!-- FIREBASE + LOGIC SCRIPT -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
@@ -294,40 +299,30 @@ const sumConfirmed = document.getElementById("sumConfirmed");
 const sumFinished = document.getElementById("sumFinished");
 const sumUnsigned = document.getElementById("sumUnsigned");
 
-/* 날짜 기본값 = 오늘 */
+/* 날짜 기본값 */
 dateInput.value = new Date().toISOString().slice(0,10);
 
 /* 위험요인 등록 화면 이동 */
 window.goRiskAdmin = () => {
-  const sid = siteIdInput.value.trim();
-  if(!sid){
-    alert("현장 ID를 먼저 입력하세요.");
-    return;
-  }
-  location.href=`risk-admin.html?siteId=${sid}`;
+  location.href=`risk-admin.html?siteId=paju`;
 };
 
 /* 위험요인 등록 현황 이동 */
 window.goRiskList = () => {
-  const sid = siteIdInput.value.trim();
-  if(!sid){
-    alert("현장 ID를 먼저 입력하세요.");
-    return;
-  }
-  location.href=`risk-list.html?siteId=${sid}`;
+  location.href=`risk-list.html?siteId=paju`;
+};
+
+/* 🔥 추가된 함수: 작업계획서 업로드 이동 */
+window.goWorkPlan = () => {
+  location.href = "https://es1063122-creator.github.io/dj-risk-Sharing/work-plan-upload.html";
 };
 
 /* 조회 기능 */
 loadBtn.onclick = async () => {
 
-  const sid = siteIdInput.value.trim();
+  const sid = "paju";   // 🔥 현장 ID 고정
   const day = dateInput.value;
   const name = nameFilter.value.trim();
-
-  if(!sid || !day){
-    alert("현장 ID와 날짜를 입력하세요");
-    return;
-  }
 
   workersBox.innerHTML="불러오는 중...";
   riskAllBox.innerHTML="불러오는 중...";
@@ -335,6 +330,7 @@ loadBtn.onclick = async () => {
   /* workerLogs 조회 */
   const snapWorkers = await getDocs(collection(db,"sites",sid,"workerLogs"));
   const logs=[];
+
   snapWorkers.forEach(docu=>{
     const d=docu.data();
     if(d.date===day){
@@ -343,25 +339,26 @@ loadBtn.onclick = async () => {
     }
   });
 
+  /* 요약 출력 */
   sumTotal.innerText=logs.length+"명";
   sumConfirmed.innerText=logs.filter(w=>w.confirmAll).length+"명";
   sumFinished.innerText=logs.filter(w=>w.endAt).length+"명";
   sumUnsigned.innerText=logs.filter(w=>!w.startSignature||!w.endSignature).length+"명";
 
+  /* 상세 출력 */
   if(logs.length===0){
     workersBox.innerHTML="<div class='muted'>작업 기록 없음</div>";
   }else{
     workersBox.innerHTML="";
     logs.forEach(w=>{
-      const start=w.startAt?.toDate? w.startAt.toDate().toLocaleString() : "-";
-      const end=w.endAt?.toDate? w.endAt.toDate().toLocaleString() : "-";
+      const start=w.startAt?.toDate ? w.startAt.toDate().toLocaleString() : "-";
+      const end=w.endAt?.toDate ? w.endAt.toDate().toLocaleString() : "-";
 
       const div=document.createElement("div");
       div.className="item";
       div.innerHTML=`
         <h3>${w.name} (${w.birth})</h3>
         <span class="muted">${w.siteId} · ${w.date}</span>
-        ${w.jobType ? `<span class="pill">${w.jobType}</span>`:""}
 
         <div style="margin-top:8px">
           <b>작업 시작:</b> ${start}<br>
@@ -389,7 +386,7 @@ loadBtn.onclick = async () => {
     return;
   }
 
-  riskAllBox.innerHTML="";
+  riskAllBox.innerHTML = "";
   allRisk.sort((a,b)=> new Date(a.startDate) - new Date(b.startDate));
 
   allRisk.forEach(s=>{
@@ -414,7 +411,7 @@ loadBtn.onclick = async () => {
       <div class="risk-status">
         <span class="status-pill" style="background:${color};">${status}</span>
         <button class="edit-btn"
-          onclick="location.href='risk-admin.html?siteId=${sid}&id=${s.startDate}_${s.endDate}'">
+          onclick="location.href='risk-admin.html?siteId=paju&id=${s.startDate}_${s.endDate}'">
           수정하기
         </button>
       </div>
