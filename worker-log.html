@@ -67,7 +67,7 @@ button:disabled{
   height:200px;
   background:#fff;
   margin-top:10px;
-  touch-action: none; /* 추가: 브라우저 제스처 차단 */
+  touch-action: none;
 }
 </style>
 </head>
@@ -202,56 +202,68 @@ const endBtn = document.getElementById("endBtn");
 let todayRisks = [];
 
 /* ==========================================================
-   🔥 서명 기능 (모바일 스크롤 차단 포함)
+   🔥 서명 기능 — 모바일 최적화(거칠고 또렷한 스타일)
 ========================================================== */
 function setupSignature(canvasId, clearBtnId){
   const canvas = document.getElementById(canvasId);
   const ctx = canvas.getContext("2d");
   let drawing = false;
+  let lastX = 0;
+  let lastY = 0;
 
-  /* PC 마우스 */
-  canvas.addEventListener("mousedown", ()=>drawing=true);
-  canvas.addEventListener("mouseup", ()=>{drawing=false;ctx.beginPath();});
-  canvas.addEventListener("mousemove", draw);
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+      y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+    };
+  }
 
-  /* 모바일 터치 — 스크롤 방지 & passive: false */
-  canvas.addEventListener("touchstart", (e)=>{
+  function startDraw(e){
     e.preventDefault();
-    document.body.style.overflow = "hidden"; // 스크롤 차단
     drawing = true;
-  }, { passive: false });
+    document.body.style.overflow = "hidden";
 
-  canvas.addEventListener("touchend", (e)=>{
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function endDraw(e){
     e.preventDefault();
     drawing = false;
-    ctx.beginPath();
-    document.body.style.overflow = "auto"; // 스크롤 복원
-  }, { passive: false });
+    document.body.style.overflow = "auto";
+  }
 
-  canvas.addEventListener("touchmove", (e)=>{
-    e.preventDefault();
-    draw(e);
-  }, { passive: false });
-
-  /* 그리기 함수 */
   function draw(e){
     if(!drawing) return;
+    e.preventDefault();
 
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const pos = getPos(e);
 
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = "butt";
+    ctx.lineJoin = "miter";
     ctx.strokeStyle = "#000";
-    ctx.lineTo(x, y);
-    ctx.stroke();
+
     ctx.beginPath();
-    ctx.moveTo(x, y);
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    lastX = pos.x;
+    lastY = pos.y;
   }
+
+  // PC 이벤트
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", endDraw);
+
+  // 모바일 이벤트
+  canvas.addEventListener("touchstart", startDraw, { passive:false });
+  canvas.addEventListener("touchmove", draw, { passive:false });
+  canvas.addEventListener("touchend", endDraw, { passive:false });
 
   // 지우기 버튼
   document.getElementById(clearBtnId).onclick = ()=>{
@@ -330,7 +342,7 @@ confirmAll.onchange=()=>{
   }
 };
 
-/* 날짜 선택시 자동 로드 */
+/* 날짜 선택 시 자동 로드 */
 workDate.onchange = loadRisks;
 
 /* 🔥 작업 시작 저장 */
@@ -393,7 +405,7 @@ async function tryRecoverSession(){
 
   const data = snap.data();
 
-  /* 위험요인 UI 복원 */
+  /* 위험요인 복원 */
   if(data.risks){
     todayRisks = data.risks;
     riskBox.innerHTML = "";
@@ -433,7 +445,7 @@ async function tryRecoverSession(){
     img2.src = data.endSignature;
   }
 
-  /* 종료 상태 표시 */
+  /* 종료 상태 */
   if(data.startSignature && !data.endSignature){
     document.getElementById("startMsg").innerText =
       "이전에 작업을 시작했습니다. 아래에서 작업 종료 처리를 하세요.";
@@ -448,7 +460,7 @@ async function tryRecoverSession(){
   }
 }
 
-/* 페이지 로딩 시 자동복구 */
+/* 페이지 로딩 시 자동 복구 */
 window.addEventListener("load", tryRecoverSession);
 
 /* 입력 변경 시 자동복구 */
