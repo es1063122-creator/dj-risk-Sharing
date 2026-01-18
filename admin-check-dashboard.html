@@ -1,54 +1,43 @@
 <!doctype html>
 <html lang="ko">
-
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>관리자 대시보드 | 위험요인 확인 현황</title>
 
-<!-- XlsxPopulate for Excel -->
+<!-- XlsxPopulate -->
 <script src="https://unpkg.com/xlsx-populate/browser/xlsx-populate.min.js"></script>
-
-<!-- SheetJS for CSV -->
+<!-- SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body { margin:0; font-family:"Noto Sans KR",sans-serif; background:#f4f7ff; color:#0b1b3b; }
-header { background:#004080; color:#fff; padding:20px; font-size:20px; font-weight:900; }
-main { max-width:1100px; margin:20px auto; padding:0 16px; }
-
-.card { background:#fff; border-radius:16px; padding:20px; margin-bottom:20px;
-        box-shadow:0 10px 30px rgba(0,64,128,.12); }
-
-label { font-size:13px; font-weight:700; color:#555; }
-input { padding:10px; border-radius:10px; border:1px solid #cdd9ff; width:100%; }
-button {
-    padding:12px 20px; border-radius:10px; border:none; font-weight:900;
-    background:#004080; color:#fff; cursor:pointer;
-}
-button:hover { opacity:.9; }
-
-.row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
-
-.item { border:1px solid #cdd9ff; border-radius:12px; padding:18px;
-        margin-top:16px; background:#f9fbff; }
-
-.sig-img { max-width:210px; border:1px solid #ccc; border-radius:8px; margin-top:10px; background:white; }
-
-.muted { color:#64748b; font-size:13px; }
-
-.risk { border-left:3px solid #004080; margin-top:10px; padding-left:14px; }
-
-.downloadArea { display:flex; gap:10px; margin-top:10px; }
-.downloadArea button { flex:1; }
+body{margin:0;font-family:"Noto Sans KR",sans-serif;background:#f4f7ff;color:#0b1b3b}
+header{background:#004080;color:#fff;padding:20px;font-size:20px;font-weight:900}
+main{max-width:1200px;margin:20px auto;padding:0 16px}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;
+box-shadow:0 10px 30px rgba(0,64,128,.12)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+label{font-size:13px;font-weight:700;color:#555}
+input{padding:10px;border-radius:10px;border:1px solid #cdd9ff;width:100%}
+button{padding:12px 20px;border-radius:10px;border:none;font-weight:900;
+background:#004080;color:#fff;cursor:pointer}
+button:hover{opacity:.9}
+.item{border:1px solid #cdd9ff;border-radius:12px;padding:18px;margin-top:16px;background:#f9fbff}
+.sig-img{max-width:220px;border:1px solid #ccc;border-radius:8px;background:#fff;margin-top:8px}
+.muted{color:#64748b;font-size:13px}
+.risk{border-left:3px solid #004080;margin-top:10px;padding-left:14px}
+.downloadArea{display:flex;gap:10px;margin-top:10px}
+.downloadArea button{flex:1}
+.badge-ok{background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800}
+.badge-warn{background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800}
 </style>
 </head>
 
 <body>
 
-<header>관리자 대시보드 · 근로자 위험요인 확인 현황</header>
+<header>관리자 대시보드 · 위험요인 확인 / 출력장</header>
 
 <main>
 
@@ -56,23 +45,23 @@ button:hover { opacity:.9; }
 <div class="card">
   <h2>조회 조건</h2>
   <div class="row">
-    <div style="flex:1">
-      <label>현장 ID</label><br>
+    <div>
+      <label>현장 ID</label>
       <input id="siteId" value="paju">
     </div>
     <div>
-      <label>조회 시작일</label><br>
+      <label>조회 시작일</label>
       <input id="startDate" type="date">
     </div>
     <div>
-      <label>조회 종료일</label><br>
+      <label>조회 종료일</label>
       <input id="endDate" type="date">
     </div>
-    <div style="flex:1">
-      <label>근로자 이름 (선택)</label><br>
+    <div>
+      <label>근로자 이름 (선택)</label>
       <input id="nameFilter" placeholder="예: 김대홍">
     </div>
-    <div style="padding-top:22px">
+    <div>
       <button id="loadBtn">조회</button>
     </div>
   </div>
@@ -80,14 +69,14 @@ button:hover { opacity:.9; }
 
 <!-- 다운로드 -->
 <div class="card">
-  <h2>데이터 다운로드</h2>
+  <h2>다운로드</h2>
   <div class="downloadArea">
     <button id="csvBtn">CSV 다운로드</button>
-    <button id="excelBtn">출역장 엑셀 다운로드</button>
+    <button id="excelBtn">출력장 엑셀 다운로드</button>
   </div>
 </div>
 
-<!-- 조회 결과 -->
+<!-- 결과 -->
 <div class="card">
   <h2>조회 결과</h2>
   <div id="listBox" class="muted">조회 조건을 입력하세요</div>
@@ -95,190 +84,135 @@ button:hover { opacity:.9; }
 
 </main>
 
-
 <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* Firebase */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
   authDomain: "dj-safety.firebaseapp.com",
   projectId: "dj-safety"
-};
-
-const app = initializeApp(firebaseConfig);
+});
 const db = getFirestore(app);
 
-const FIXED_SITE_ID = "paju";
-
+const siteId = document.getElementById("siteId");
 const startDate = document.getElementById("startDate");
 const endDate = document.getElementById("endDate");
 const nameFilter = document.getElementById("nameFilter");
 const listBox = document.getElementById("listBox");
-const loadBtn = document.getElementById("loadBtn");
+
 const csvBtn = document.getElementById("csvBtn");
 const excelBtn = document.getElementById("excelBtn");
+const loadBtn = document.getElementById("loadBtn");
 
 let records = [];
 
+/* 🔥 오늘 날짜 기본 설정 */
+const today = new Date().toISOString().slice(0,10);
+startDate.value = today;
+endDate.value = today;
 
-/* --------------------- 조회 실행 ----------------------- */
+/* 조회 */
 loadBtn.onclick = async () => {
-
-  const start = startDate.value;
-  const end = endDate.value;
-
-  if (!start || !end) {
-    listBox.innerHTML = "<div class='muted'>조회 시작일과 종료일을 입력하세요</div>";
-    return;
-  }
-
-  const filterName = nameFilter.value.trim();
-  listBox.innerHTML = "불러오는 중...";
   records = [];
+  listBox.innerHTML = "불러오는 중...";
 
-  try {
-    const q = query(
-      collection(db, "sites", FIXED_SITE_ID, "workerLogs"),
-      where("date", ">=", start),
-      where("date", "<=", end)
-    );
+  const q = query(
+    collection(db,"sites",siteId.value,"workerLogs"),
+    where("date",">=",startDate.value),
+    where("date","<=",endDate.value)
+  );
 
-    const snap = await getDocs(q);
+  const snap = await getDocs(q);
+  listBox.innerHTML = "";
 
-    if (snap.empty) {
-      listBox.innerHTML = "<div class='muted'>데이터 없음</div>";
-      return;
-    }
+  snap.forEach(doc=>{
+    const d = doc.data();
+    if(nameFilter.value && !d.name.includes(nameFilter.value)) return;
 
-    listBox.innerHTML = "";
+    const status = d.endAt ? 
+      `<span class="badge-ok">종료</span>` :
+      `<span class="badge-warn">미종료</span>`;
 
-    snap.forEach(doc => {
-      const d = doc.data();
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <b>${d.name}</b> ${status}<br>
+      <span class="muted">${d.date} · ${d.jobType || "-"}</span>
 
-      if (filterName && !d.name.includes(filterName)) return;
+      <h4>작업 시작 서명</h4>
+      ${d.startSignature ? `<img class="sig-img" src="${d.startSignature}">` : "없음"}
 
-      const item = document.createElement("div");
-      item.className = "item";
+      <h4>작업 종료 서명</h4>
+      ${d.endSignature ? `<img class="sig-img" src="${d.endSignature}">` : "없음"}
 
-      item.innerHTML = `
-        <b>${d.name}</b><br>
-        <span class="muted">${FIXED_SITE_ID} · ${d.date}</span><br><br>
+      <div class="risk">
+        ${(d.risks||[]).map(r=>`
+          <div>
+            <b>${r.category}</b><br>
+            ${r.detail}<br>
+            <span class="muted">대책: ${r.counter}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    listBox.appendChild(div);
 
-        <h4>작업 시작 서명</h4>
-        ${d.startSignature ? `<img class="sig-img" src="${d.startSignature}">` : "<div class='muted'>서명 없음</div>"}
-
-        <h4 style="margin-top:12px">작업 종료 서명</h4>
-        ${d.endSignature ? `<img class="sig-img" src="${d.endSignature}">` : "<div class='muted'>서명 없음</div>"}
-
-        <div class="risk">
-          ${(d.risks || []).map(r => `
-            <div>
-              <b>${r.category}</b><br>
-              ${r.detail}<br>
-              <span class="muted">대책: ${r.counter}</span>
-            </div>
-          `).join("")}
-        </div>
-      `;
-
-      listBox.appendChild(item);
-
-      records.push({
-        이름: d.name,
-        직종: d.job || "",
-        생년월일: d.birth || "",
-        현장ID: FIXED_SITE_ID,
-        작업일: d.date,
-        위험요인: (d.risks || []).map(r => `${r.category}:${r.detail}`).join(" / ")
-      });
+    records.push({
+      이름: d.name,
+      직종: d.jobType || "",
+      생년월일: d.birth || "",
+      현장ID: siteId.value,
+      작업일: d.date,
+      보율: 1.0,
+      위험요인: (d.risks||[]).map(r=>`${r.category}:${r.detail}`).join(" / ")
     });
+  });
 
-  } catch (e) {
-    console.error(e);
-    listBox.innerHTML = "<div class='muted'>조회 중 오류 발생</div>";
+  if(!records.length){
+    listBox.innerHTML = "<div class='muted'>데이터 없음</div>";
   }
 };
 
+/* CSV 다운로드 */
+csvBtn.onclick = () => {
+  if(!records.length) return alert("데이터 없음");
+  const ws = XLSX.utils.json_to_sheet(records);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"data");
+  XLSX.writeFile(wb,`worker_${startDate.value}_${endDate.value}.csv`);
+};
 
-
-/* ------------------ 출역장 엑셀 다운로드 ------------------ */
-
+/* 출력장 엑셀 */
 excelBtn.onclick = async () => {
+  if(!records.length) return alert("데이터 없음");
 
-  if (!records.length) return alert("데이터 없음");
+  const res = await fetch(
+    "https://raw.githubusercontent.com/es1063122-creator/dj-risk-Sharing/main/Worker%20Output%20Report.xlsx"
+  );
+  const buf = await res.arrayBuffer();
+  const wb = await XlsxPopulate.fromDataAsync(buf);
+  const sh = wb.sheet(0);
 
-  try {
-    const templateUrl =
-      "https://raw.githubusercontent.com/es1063122-creator/dj-risk-Sharing/main/Worker%20Output%20Report.xlsx";
+  sh.cell("C3").value(`현장명 : ${siteId.value}`);
 
-    const res = await fetch(templateUrl);
-    const arrayBuffer = await res.arrayBuffer();
+  records.forEach((r,i)=>{
+    const row = 5+i;
+    sh.cell(`A${row}`).value(i+1);
+    sh.cell(`C${row}`).value(r.직종);
+    sh.cell(`I${row}`).value(r.이름);
+    sh.cell(`O${row}`).value(r.보율);   // ⭐ 보율 1.0
+  });
 
-    const wb = await XlsxPopulate.fromDataAsync(arrayBuffer);
-    const sheet = wb.sheet(0);
-
-    /* 날짜 입력 */
-    const dt = new Date(startDate.value);
-    sheet.cell("AN1").value(dt.getFullYear());
-    sheet.cell("AZ1").value(dt.getMonth() + 1);
-
-    /* 현장명 입력 */
-    sheet.cell("C3").value(`현장명 : ${FIXED_SITE_ID}`);
-
-    /* 데이터 입력 (회사의 실제 구조에 맞게 수정!) */
-    for (let i = 0; i < 20; i++) {
-
-      const rec = records[i] || {};
-      const row = 5 + i;
-
-      sheet.cell(`A${row}`).value(i + 1);        // 번호
-      sheet.cell(`C${row}`).value(rec.직종);     // 직종 (C열)
-      sheet.cell(`I${row}`).value(rec.이름);     // 성명 (I열)
-
-      let pos = "";
-      let detail = "";
-
-      if (rec.위험요인) {
-        const first = rec.위험요인.split(" / ")[0];
-        const parts = first.split(":");
-        if (parts.length >= 2) {
-          pos = parts[0].trim();
-          detail = parts[1].trim();
-        }
-      }
-
-      sheet.cell(`G${row}`).value(pos);         // 작업 위치
-      sheet.cell(`H${row}`).value(detail);      // 작업 내용
-    }
-
-    // 👇 회사명 BE29 삭제 (요청 반영)
-    // sheet.cell("BE29").value("동진토건(주)");  ← 삭제
-
-    const blob = await wb.outputAsync("blob");
-
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `출역장_${FIXED_SITE_ID}_${startDate.value}.xlsx`;
-    a.click();
-
-    setTimeout(() => URL.revokeObjectURL(a.href), 500);
-
-  } catch (err) {
-    console.error(err);
-    alert("출역장 생성 오류 발생!");
-  }
+  const blob = await wb.outputAsync("blob");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `출력장_${siteId.value}_${startDate.value}.xlsx`;
+  a.click();
 };
 
 </script>
-
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>위험요인 기간 등록 | dj-safety 관리자</title>
+<title>위험요인 기간 등록 | 파주 PMC 현장</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -32,9 +32,7 @@ header{
   font-weight:700;
   cursor:pointer;
 }
-.back-btn:hover{
-  background:#e0e8ff;
-}
+.back-btn:hover{background:#e0e8ff;}
 main{
   max-width:900px;
   margin:20px auto;
@@ -98,19 +96,22 @@ button:hover{opacity:.9;}
 
 <header>
   <div id="title">위험요인 기간 등록</div>
-  <button class="back-btn" onclick="goBack()">← 뒤로가기</button>
+  <button class="back-btn" onclick="location.href='dashboard.html'">
+  ← 대시보드로
+</button>
 </header>
 
 <main>
 
+<!-- 적용 정보 -->
 <div class="card">
   <h2>적용 정보</h2>
 
   <label>현장 ID</label>
-  <input id="siteId">
+  <input value="paju" disabled>
 
   <label>현장명</label>
-  <input id="siteName">
+  <input value="파주 PMC 현장" disabled>
 
   <label>적용 시작일</label>
   <input id="startDate" type="date">
@@ -129,17 +130,15 @@ button:hover{opacity:.9;}
   </select>
 </div>
 
+<!-- 위험요인 -->
 <div class="card">
   <h2>위험요인 목록</h2>
 
-  <label>위험요인 분류</label>
-  <input id="category">
-
   <label>위험요인 내용</label>
-  <textarea id="detail"></textarea>
+  <textarea id="detail" placeholder="예: 굴착기 작업 반경 내 근로자 접근"></textarea>
 
   <label>개선대책</label>
-  <textarea id="counter"></textarea>
+  <textarea id="counter" placeholder="예: 작업 반경 출입 통제 및 신호수 배치"></textarea>
 
   <button onclick="addRisk()">+ 위험요인 추가</button>
 
@@ -159,55 +158,46 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* Firebase */
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
   authDomain: "dj-safety.firebaseapp.com",
   projectId: "dj-safety"
-};
-const app = initializeApp(firebaseConfig);
+});
 const db = getFirestore(app);
 
-/* URL 파라미터 */
+/* 고정 현장 */
+const SITE_ID = "paju";
+const SITE_NAME = "파주 PMC 현장";
+
+/* URL 파라미터 (수정용 id만 사용) */
 const params = new URLSearchParams(location.search);
-const paramSiteId = params.get("siteId");
 const riskSetId = params.get("id");
 
-/* 상태 */
 let risks = [];
 let isEdit = false;
 
-/* 뒤로가기 */
-window.goBack = () => {
-  history.back();
-};
-
 /* 수정 모드 */
-if(paramSiteId && riskSetId){
+if(riskSetId){
   isEdit = true;
   title.innerText = "위험요인 기간 수정";
   saveBtn.innerText = "수정 저장";
-  siteId.value = paramSiteId;
-  siteId.disabled = true;
   loadRiskSet();
 }
 
 /* 위험요인 추가 */
 window.addRisk = () => {
-  if(!category.value || !detail.value || !counter.value){
-    alert("위험요인 정보를 모두 입력하세요");
+  if(!detail.value || !counter.value){
+    alert("위험요인 내용과 개선대책을 입력하세요");
     return;
   }
 
   risks.push({
-    category: category.value,
     detail: detail.value,
     counter: counter.value
   });
 
-  category.value = "";
   detail.value = "";
   counter.value = "";
-
   renderRisks();
 };
 
@@ -218,7 +208,6 @@ function renderRisks(){
     const div = document.createElement("div");
     div.className = "risk";
     div.innerHTML = `
-      <b>${r.category}</b><br>
       ${r.detail}<br>
       <i>${r.counter}</i><br>
       <button onclick="removeRisk(${i})">삭제</button>
@@ -233,9 +222,9 @@ window.removeRisk = (idx)=>{
   renderRisks();
 };
 
-/* 기존 riskSet 불러오기 */
+/* 기존 데이터 로드 */
 async function loadRiskSet(){
-  const ref = doc(db,"sites",paramSiteId,"riskSets",riskSetId);
+  const ref = doc(db,"sites",SITE_ID,"riskSets",riskSetId);
   const snap = await getDoc(ref);
 
   if(!snap.exists()){
@@ -244,19 +233,17 @@ async function loadRiskSet(){
   }
 
   const d = snap.data();
-  siteName.value = d.siteName || "";
   startDate.value = d.startDate;
   endDate.value = d.endDate;
   workType.value = d.workTypes?.[0] || "";
   risks = d.risks || [];
-
   renderRisks();
 }
 
 /* 저장 */
 window.saveRiskSet = async ()=>{
-  if(!siteId.value || !startDate.value || !endDate.value){
-    alert("필수 정보를 입력하세요.");
+  if(!startDate.value || !endDate.value){
+    alert("적용 기간을 입력하세요.");
     return;
   }
   if(risks.length === 0){
@@ -264,18 +251,17 @@ window.saveRiskSet = async ()=>{
     return;
   }
 
-  const id = isEdit ? riskSetId : `${startDate.value}_${endDate.value}`;
+  const id = riskSetId || `${startDate.value}_${endDate.value}`;
 
   await setDoc(
-    doc(db,"sites",siteId.value,"riskSets",id),
+    doc(db,"sites",SITE_ID,"riskSets",id),
     {
-      siteId: siteId.value,
-      siteName: siteName.value || siteId.value,
+      siteId: SITE_ID,
+      siteName: SITE_NAME,
       startDate: startDate.value,
       endDate: endDate.value,
       workTypes: [workType.value],
-      risks: risks,
-      updatedBy: "admin",
+      risks,
       updatedAt: serverTimestamp()
     },
     { merge:true }

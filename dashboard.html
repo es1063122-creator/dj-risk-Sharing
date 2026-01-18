@@ -3,271 +3,151 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>dj-safety 관리자 대시보드</title>
+<title>관리자 대시보드 | dj-safety</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-:root{
-  --blue:#004080;
-  --bg:#f4f7ff;
-  --card:#ffffff;
-  --muted:#64748b;
-  --line:#cdd9ff;
-}
-*{box-sizing:border-box}
-
 body{
   margin:0;
   font-family:"Noto Sans KR",sans-serif;
-  background:var(--bg);
+  background:#f4f7ff;
   color:#0b1b3b;
 }
-
-header{
-  background:var(--blue);
-  color:#fff;
-  padding:16px 20px;
-  font-weight:900;
+main{
+  max-width:1100px;
+  margin:20px auto;
+  padding:0 16px;
 }
 
-header small{opacity:.8;font-weight:400;font-size:12px}
-
-.top-buttons{
+/* ================= 상단 버튼 ================= */
+.top-btns{
   display:flex;
   gap:10px;
-  margin-top:10px;
-}
-
-.top-btn{
-  padding:10px 14px;
-  border-radius:10px;
-  background:#0f4c81;
-  color:#fff;
-  border:none;
-  font-weight:800;
-  cursor:pointer;
-}
-.top-btn:hover{opacity:.9}
-
-main{
-  max-width:1200px;
-  margin:20px auto;
-  padding:0 18px 40px;
-}
-
-.card{
-  background:#fff;
-  border-radius:16px;
-  box-shadow:0 10px 30px rgba(0,64,128,.12);
-  padding:20px;
-  margin-bottom:24px;
-}
-
-.card h2{
-  margin:0 0 12px;
-  font-size:18px;
-}
-
-.row{
-  display:flex;
-  gap:14px;
+  margin-bottom:20px;
   flex-wrap:wrap;
 }
-
-.field{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-
-input{
-  padding:10px;
-  border-radius:10px;
-  border:1px solid var(--line);
-  min-width:150px;
-}
-
-button{
-  padding:10px 14px;
-  border:none;
-  border-radius:10px;
-  font-weight:800;
-  background:var(--blue);
-  color:#fff;
-  cursor:pointer;
-}
-button:hover{opacity:.9}
-
-.muted{color:var(--muted);font-size:13px}
-
-.summary-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-}
-
-.summary{
-  background:#f9fbff;
-  padding:16px;
-  border-radius:14px;
-  border:1px solid var(--line);
-}
-
-.summary-label{font-size:13px;color:var(--muted)}
-.summary-value{font-size:22px;font-weight:900;margin-top:4px}
-
-.item{
-  border:1px solid var(--line);
-  border-radius:12px;
+.top-btns .btn{
+  flex:1;
+  min-width:170px;
   padding:14px;
-  background:#f9fbff;
-  margin-bottom:10px;
-}
-
-.badge{
-  display:inline-block;
-  padding:4px 10px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:800;
-}
-
-.badge-ok{background:#dcfce7;color:#166534}
-.badge-draft{background:#fef3c7;color:#92400e}
-
-.risk-card{
-  border:1px solid #dbeafe;
-  background:#f9fbff;
   border-radius:14px;
-  padding:16px;
-  margin-bottom:16px;
-  box-shadow:0 4px 14px rgba(0,64,128,0.08);
-}
-
-.status-pill{
-  padding:6px 12px;
-  border-radius:999px;
-  color:#fff;
-  font-weight:700;
-  font-size:13px;
-}
-
-.edit-btn{
-  padding:6px 12px;
-  background:#004080;
-  border-radius:8px;
+  font-weight:900;
+  font-size:14px;
+  border:none;
   color:#fff;
   cursor:pointer;
 }
+.btn.blue{background:#003366}
+.btn.green{background:#16a34a}
+.btn.orange{background:#f97316}
+.btn.purple{background:#7c3aed}
 
-.pill{
-  padding:4px 8px;
-  border-radius:999px;
+/* ================= 카드 ================= */
+.card{
   background:#fff;
-  border:1px solid var(--line);
-  font-size:12px;
-  margin-left:4px;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(0,64,128,.12);
+  padding:20px;
+  margin-bottom:20px;
+}
+h2{
+  margin:0 0 12px;
+  font-size:20px;
 }
 
-.risk-block{
-  padding-left:12px;
-  border-left:3px solid var(--blue);
+/* ================= 요약 박스 ================= */
+.summary{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;
+}
+.summary-box{
+  padding:18px;
+  border-radius:14px;
+  background:#f8fbff;
+  border:1px solid #cdd9ff;
+}
+.summary-box b{
+  font-size:26px;
+  display:block;
+  margin-top:6px;
+}
+
+/* ================= 리스트 ================= */
+.list{
   margin-top:10px;
 }
+.item{
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #cdd9ff;
+  margin-bottom:8px;
+  background:#fff;
+}
+.warn{
+  border-color:#ef4444;
+  background:#fff5f5;
+}
+.ok{
+  border-color:#22c55e;
+  background:#f0fdf4;
+}
+.small{
+  font-size:13px;
+  color:#475569;
+}
 </style>
-
 </head>
 
 <body>
-
-<header>
-  dj-safety 관리자 대시보드<br>
-  <small>근로자 작업·확인·서명·위험요인 관리</small>
-
-  <div class="top-buttons">
-    <button class="top-btn" onclick="location.href='admin-check-dashboard.html'">근로자 확인 현황</button>
-    <button class="top-btn" onclick="goRiskList()">위험요인 등록 현황</button>
-    <button class="top-btn" onclick="goRiskAdmin()">위험요인 등록</button>
-
-    <!-- 🔥 추가된 부분: 작업계획서 업로드 버튼 -->
-    <button class="top-btn" onclick="goWorkPlan()">작업계획서 업로드</button>
-
-    <button class="top-btn" onclick="location.href='index.html'">홈으로</button>
-  </div>
-</header>
-
 <main>
 
-<!-- 조회 조건 -->
+<!-- 상단 관리자 버튼 -->
+<div class="top-btns">
+  <button class="btn blue" onclick="location.href='dashboard.html'">📊 금일 작업현황</button>
+  <button class="btn green" onclick="location.href='admin-check-dashboard.html'">👷 근로자 확인현황</button>
+  <button class="btn orange" onclick="location.href='risk-list.html'">⚠ 위험요인 등록현황</button>
+  <button class="btn purple" onclick="location.href='work-plan-upload.html'">📄 장비 작업계획서 업로드</button>
+</div>
+
+<!-- ================= 금일 요약 ================= -->
 <div class="card">
-  <h2>조회 조건</h2>
-
-  <div class="row">
-    <div class="field">
-      <label>현장 ID</label>
-      <input id="siteId" value="paju" disabled>
+  <h2>📌 금일 작업 요약</h2>
+  <div class="summary">
+    <div class="summary-box">
+      근로자 작업 시작
+      <b id="workerStartCnt">0</b>
     </div>
-
-    <div class="field">
-      <label>조회 날짜</label>
-      <input id="date" type="date">
+    <div class="summary-box">
+      근로자 작업 종료
+      <b id="workerEndCnt">0</b>
     </div>
-
-    <div class="field">
-      <label>근로자 이름(선택)</label>
-      <input id="nameFilter" placeholder="김대홍">
+    <div class="summary-box">
+      장비 작업 개시
+      <b id="equipStartCnt">0</b>
     </div>
-
-    <div class="field">
-      <label>&nbsp;</label>
-      <button id="loadBtn">조회</button>
+    <div class="summary-box">
+      ⚠ 작업계획서 미확인 장비
+      <b id="equipWarnCnt" style="color:#ef4444">0</b>
     </div>
   </div>
 </div>
 
-<!-- 요약 -->
+<!-- ================= 근로자 현황 ================= -->
 <div class="card">
-  <h2>금일 작업 현황 요약</h2>
-
-  <div class="summary-grid">
-    <div class="summary">
-      <div class="summary-label">오늘 작업자</div>
-      <div id="sumTotal" class="summary-value">0명</div>
-    </div>
-
-    <div class="summary">
-      <div class="summary-label">위험요인 확인</div>
-      <div id="sumConfirmed" class="summary-value">0명</div>
-    </div>
-
-    <div class="summary">
-      <div class="summary-label">작업 종료</div>
-      <div id="sumFinished" class="summary-value">0명</div>
-    </div>
-
-    <div class="summary">
-      <div class="summary-label">서명 미완료</div>
-      <div id="sumUnsigned" class="summary-value">0명</div>
-    </div>
-  </div>
+  <h2>👷 근로자 작업 현황</h2>
+  <div id="workerList" class="list"></div>
 </div>
 
-<!-- 근로자 작업 -->
+<!-- ================= 장비 현황 ================= -->
 <div class="card">
-  <h2>근로자 작업 상세</h2>
-  <div id="workersBox" class="muted">조회 후 표시됩니다.</div>
-</div>
-
-<!-- 전체 위험요인 -->
-<div class="card">
-  <h2>전체 위험요인 등록 현황</h2>
-  <div id="riskAllBox" class="muted">조회 후 표시됩니다.</div>
+  <h2>🚜 장비 작업 현황</h2>
+  <div id="equipmentList" class="list"></div>
 </div>
 
 </main>
 
-<!-- FIREBASE + LOGIC SCRIPT -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
@@ -276,150 +156,67 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* Firebase init */
-const firebaseConfig = {
-  apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
-  authDomain: "dj-safety.firebaseapp.com",
-  projectId: "dj-safety"
-};
-const app = initializeApp(firebaseConfig);
+/* Firebase */
+const app = initializeApp({
+  apiKey:"AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain:"dj-safety.firebaseapp.com",
+  projectId:"dj-safety"
+});
 const db = getFirestore(app);
 
+const siteId = "paju";
+const today = new Date().toISOString().slice(0,10);
+
 /* DOM */
-const siteIdInput = document.getElementById("siteId");
-const dateInput = document.getElementById("date");
-const nameFilter = document.getElementById("nameFilter");
-const loadBtn = document.getElementById("loadBtn");
+const workerList = document.getElementById("workerList");
+const equipmentList = document.getElementById("equipmentList");
 
-const workersBox = document.getElementById("workersBox");
-const riskAllBox = document.getElementById("riskAllBox");
+let workerStart=0, workerEnd=0, equipStart=0, equipWarn=0;
 
-const sumTotal = document.getElementById("sumTotal");
-const sumConfirmed = document.getElementById("sumConfirmed");
-const sumFinished = document.getElementById("sumFinished");
-const sumUnsigned = document.getElementById("sumUnsigned");
+/* ================= 근로자 ================= */
+const workerSnap = await getDocs(collection(db,"sites",siteId,"workerLogs"));
+workerSnap.forEach(d=>{
+  const v=d.data();
+  if(v.date!==today) return;
 
-/* 날짜 기본값 */
-dateInput.value = new Date().toISOString().slice(0,10);
+  workerStart++;
+  if(v.endAt) workerEnd++;
 
-/* 위험요인 등록 화면 이동 */
-window.goRiskAdmin = () => {
-  location.href=`risk-admin.html?siteId=paju`;
-};
-
-/* 위험요인 등록 현황 이동 */
-window.goRiskList = () => {
-  location.href=`risk-list.html?siteId=paju`;
-};
-
-/* 🔥 추가된 함수: 작업계획서 업로드 이동 */
-window.goWorkPlan = () => {
-  location.href = "https://es1063122-creator.github.io/dj-risk-Sharing/work-plan-upload.html";
-};
-
-/* 조회 기능 */
-loadBtn.onclick = async () => {
-
-  const sid = "paju";   // 🔥 현장 ID 고정
-  const day = dateInput.value;
-  const name = nameFilter.value.trim();
-
-  workersBox.innerHTML="불러오는 중...";
-  riskAllBox.innerHTML="불러오는 중...";
-
-  /* workerLogs 조회 */
-  const snapWorkers = await getDocs(collection(db,"sites",sid,"workerLogs"));
-  const logs=[];
-
-  snapWorkers.forEach(docu=>{
-    const d=docu.data();
-    if(d.date===day){
-      if(name && !(d.name||"").includes(name)) return;
-      logs.push(d);
-    }
-  });
-
-  /* 요약 출력 */
-  sumTotal.innerText=logs.length+"명";
-  sumConfirmed.innerText=logs.filter(w=>w.confirmAll).length+"명";
-  sumFinished.innerText=logs.filter(w=>w.endAt).length+"명";
-  sumUnsigned.innerText=logs.filter(w=>!w.startSignature||!w.endSignature).length+"명";
-
-  /* 상세 출력 */
-  if(logs.length===0){
-    workersBox.innerHTML="<div class='muted'>작업 기록 없음</div>";
-  }else{
-    workersBox.innerHTML="";
-    logs.forEach(w=>{
-      const start=w.startAt?.toDate ? w.startAt.toDate().toLocaleString() : "-";
-      const end=w.endAt?.toDate ? w.endAt.toDate().toLocaleString() : "-";
-
-      const div=document.createElement("div");
-      div.className="item";
-      div.innerHTML=`
-        <h3>${w.name} (${w.birth})</h3>
-        <span class="muted">${w.siteId} · ${w.date}</span>
-
-        <div style="margin-top:8px">
-          <b>작업 시작:</b> ${start}<br>
-          <b>작업 종료:</b> ${end}
-        </div>
-
-        <div style="margin-top:8px">
-          ${w.confirmAll
-            ? `<span class="badge badge-ok">위험요인 확인 완료</span>`
-            : `<span class="badge badge-draft">위험요인 미확인</span>`
-          }
-        </div>
-      `;
-      workersBox.appendChild(div);
-    });
-  }
-
-  /* 전체 riskSets 조회 */
-  const riskSnap = await getDocs(collection(db,"sites",sid,"riskSets"));
-  const allRisk = [];
-  riskSnap.forEach(docu => allRisk.push(docu.data()));
-
-  if(allRisk.length===0){
-    riskAllBox.innerHTML="<div class='muted'>위험요인 등록 없음</div>";
-    return;
-  }
-
-  riskAllBox.innerHTML = "";
-  allRisk.sort((a,b)=> new Date(a.startDate) - new Date(b.startDate));
-
-  allRisk.forEach(s=>{
-    const now=new Date();
-    const st=new Date(s.startDate);
-    const en=new Date(s.endDate);
-
-    let status="대기";
-    let color="#6b7280";
-
-    if(now>=st && now<=en){ status="적용 중"; color="#16a34a"; }
-    else if(now>en){ status="종료"; color="#dc2626"; }
-
-    const div=document.createElement("div");
-    div.className="risk-card";
-    div.innerHTML=`
-      <div class="risk-title">${s.siteName}</div>
-      <div class="risk-date">${s.startDate} ~ ${s.endDate}</div>
-      <div class="risk-info">공종: ${s.workTypes.join(", ")}</div>
-      <div class="risk-info">위험요인: ${(s.risks||[]).length}개</div>
-
-      <div class="risk-status">
-        <span class="status-pill" style="background:${color};">${status}</span>
-        <button class="edit-btn"
-          onclick="location.href='risk-admin.html?siteId=paju&id=${s.startDate}_${s.endDate}'">
-          수정하기
-        </button>
+  workerList.innerHTML+=`
+    <div class="item ${v.endAt?'ok':'warn'}">
+      <b>${v.name}</b> (${v.jobType||'-'})
+      <div class="small">
+        시작: ${v.startAt ? '✔' : '✖'} /
+        종료: ${v.endAt ? '✔' : '미종료'}
       </div>
-    `;
+    </div>`;
+});
 
-    riskAllBox.appendChild(div);
-  });
-};
+/* ================= 장비 ================= */
+const equipSnap = await getDocs(collection(db,"sites",siteId,"equipmentLogs"));
+equipSnap.forEach(d=>{
+  const v=d.data();
+  if(!v.startAt) return;
+
+  equipStart++;
+  const planOk = v.workPlanConfirmed === true;
+
+  if(!planOk) equipWarn++;
+
+  equipmentList.innerHTML+=`
+    <div class="item ${planOk?'ok':'warn'}">
+      <b>${v.equipmentType||'장비'}</b> (${v.equipmentId||'-'})
+      <div class="small">
+        작업계획서: ${planOk?'확인':'❌ 미확인'}
+      </div>
+    </div>`;
+});
+
+/* 요약 반영 */
+document.getElementById("workerStartCnt").innerText=workerStart;
+document.getElementById("workerEndCnt").innerText=workerEnd;
+document.getElementById("equipStartCnt").innerText=equipStart;
+document.getElementById("equipWarnCnt").innerText=equipWarn;
 </script>
 
 </body>

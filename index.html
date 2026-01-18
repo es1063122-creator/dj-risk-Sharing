@@ -139,7 +139,7 @@ h1{
   box-shadow:0 16px 45px rgba(14,165,233,.50);
 }
 
-/* 동영상 영역 */
+/* 동영상 */
 .video-wrapper{
   position:relative;
   width:100%;
@@ -149,25 +149,19 @@ h1{
   overflow:hidden;
   box-shadow:0 8px 20px rgba(0,0,0,.18);
 }
-
 .video-wrapper video{
   width:100%;
   display:block;
-  border-radius:22px;
 }
-
-/* 오버레이 텍스트 */
 .video-text{
   position:absolute;
   top:50%;
   left:50%;
   transform:translate(-50%, -50%);
-  color:#ffffff;
+  color:#fff;
   font-size:22px;
   font-weight:900;
   text-shadow:0 3px 8px rgba(0,0,0,.6);
-  white-space:nowrap;
-  text-align:center;
 }
 
 /* 관리자 버튼 */
@@ -175,7 +169,6 @@ h1{
   background:linear-gradient(135deg,#ffffff,#f1f5ff);
   color:var(--blue);
   border:2px solid rgba(0,64,128,.18);
-  box-shadow:0 10px 25px rgba(0,64,128,.12);
 }
 .admin:hover{
   background:#f0f5ff;
@@ -186,7 +179,6 @@ h1{
   margin-top:30px;
   font-size:12px;
   color:#94a3b8;
-  line-height:1.6;
 }
 </style>
 </head>
@@ -196,35 +188,34 @@ h1{
 <div class="container">
   <div class="card">
 
-    <!-- 현장명 강조 -->
     <div class="site-badge">📍 파주 PMC 현장</div>
 
     <h1>동진토건(주) 위험성평가 공유</h1>
 
     <div class="sub">
       파주 PMC 현장 전용<br>
-      근로자·장비기사 위험요인 및 작업 시작 시스템
+      근로자·장비기사 위험요인 및 작업 관리 시스템
     </div>
 
-    <!-- 근로자 버튼 -->
+    <!-- 🔥 근로자 -->
     <button class="btn worker" onclick="goWorker()">
-      👷 근로자 → 위험요인 확인 후 작업 시작
+      👷 근로자 작업
     </button>
 
-    <!-- 장비기사 버튼 -->
+    <!-- 장비기사 -->
     <button class="btn equipment" onclick="goEquipment()">
-      🚜 장비기사 → 위험요인 + 작업계획서 확인 후 시작
+      🚜 장비기사 작업
     </button>
 
-    <!-- 동영상 + 오버레이 텍스트 -->
+    <!-- 영상 -->
     <div class="video-wrapper">
       <video autoplay muted loop playsinline>
         <source src="https://raw.githubusercontent.com/es1063122-creator/dj-risk-Sharing/main/demo.mp4" type="video/mp4">
       </video>
-      <div class="video-text">안전이 최우선입니다.</div>
+      <div class="video-text">안전이 최우선입니다</div>
     </div>
 
-    <!-- 관리자 버튼 -->
+    <!-- 관리자 -->
     <button class="btn admin" onclick="goAdmin()">
       👨‍💼 관리자 대시보드
     </button>
@@ -238,7 +229,8 @@ h1{
 
 <script>
 function goWorker(){
-  location.href = "worker-log.html?siteId=paju";
+  // 🔥 근로자 → 작업 선택 화면으로 이동
+  location.href = "worker-gate.html?siteId=paju";
 }
 function goEquipment(){
   location.href = "equipment-log.html?siteId=paju";
