@@ -23,19 +23,18 @@ main{max-width:900px;margin:20px auto;padding:0 16px}
   margin-bottom:20px
 }
 h2{margin:0 0 12px}
-
 label{font-size:14px;font-weight:700;color:#555;display:block;margin-top:12px}
-input, select{
+input,select{
   width:100%;
   padding:12px;
-  border:1px solid #d9e2ef;
   border-radius:10px;
+  border:1px solid #d9e2ef;
   margin-top:6px;
   font-size:16px;
 }
 
-/* 🔥 작업계획서 강조 버튼 */
-.plan-download-btn{
+/* 작업계획서 버튼 */
+.plan-btn{
   width:100%;
   padding:20px;
   margin-top:18px;
@@ -45,8 +44,8 @@ input, select{
   color:#fff;
   font-size:19px;
   font-weight:900;
-  box-shadow:0 16px 40px rgba(255,138,0,.45);
   cursor:pointer;
+  box-shadow:0 16px 40px rgba(255,138,0,.45);
   animation:pulse 1.6s infinite;
 }
 @keyframes pulse{
@@ -54,7 +53,10 @@ input, select{
   50%{transform:scale(1.04)}
   100%{transform:scale(1)}
 }
-.plan-download-btn:active{transform:scale(.97)}
+.plan-btn:disabled{
+  background:#94a3b8;
+  animation:none;
+}
 
 .plan-item{
   background:#fff7ed;
@@ -62,8 +64,7 @@ input, select{
   padding:14px;
   border-radius:12px;
   margin-top:12px;
-  font-size:15px;
-  font-weight:700;
+  font-weight:800;
 }
 .plan-item a{
   display:inline-block;
@@ -74,6 +75,16 @@ input, select{
   border-radius:8px;
   text-decoration:none;
   font-weight:900;
+}
+
+.warn{
+  margin-top:14px;
+  padding:14px;
+  border-radius:12px;
+  background:#fee2e2;
+  color:#991b1b;
+  font-weight:900;
+  text-align:center;
 }
 
 .risk{
@@ -94,22 +105,6 @@ input, select{
   touch-action:none;
 }
 
-.notice{
-  margin-top:15px;
-  text-align:center;
-  font-weight:800;
-  color:#004080;
-}
-
-.warn{
-  margin-top:14px;
-  padding:14px;
-  border-radius:12px;
-  background:#fee2e2;
-  color:#991b1b;
-  font-weight:900;
-  text-align:center;
-}
 button.primary{
   width:100%;
   padding:18px;
@@ -120,11 +115,17 @@ button.primary{
   background:#004080;
   color:#fff;
   cursor:pointer;
-  margin-top:18px;
+  margin-top:18px
 }
 button.primary:disabled{
   background:#94a3b8;
-  cursor:not-allowed;
+  cursor:not-allowed
+}
+.notice{
+  text-align:center;
+  font-weight:800;
+  color:#004080;
+  margin-top:12px
 }
 </style>
 </head>
@@ -132,7 +133,6 @@ button.primary:disabled{
 <body>
 <main>
 
-<!-- 기본 정보 -->
 <div class="card">
   <h2>장비운전원 기본정보</h2>
 
@@ -159,8 +159,7 @@ button.primary:disabled{
   <input id="equipmentId" placeholder="예: 05가1234">
 </div>
 
-<!-- 🔥 작업계획서 -->
-<button class="plan-download-btn" onclick="loadWorkplanByEquipment()">
+<button id="planBtn" class="plan-btn" onclick="loadWorkplanByEquipment()">
   📄 작업계획서 확인 · 다운로드 (필수)
 </button>
 
@@ -170,18 +169,16 @@ button.primary:disabled{
   ⚠ 작업계획서를 최소 1회 이상 열어야 작업개시가 가능합니다
 </div>
 
-<!-- 위험요인 -->
 <div class="card">
   <h2>금일 적용 위험요인</h2>
   <div id="riskBox">불러오는 중...</div>
 
-  <label style="margin-top:20px">
+  <label>
     <input type="checkbox" id="confirmAll">
     <b>위의 모든 위험요인을 확인했습니다.</b>
   </label>
 </div>
 
-<!-- 작업 시작 -->
 <div class="card">
   <h2>작업 시작 서명</h2>
   <canvas id="signStart" class="signature-pad"></canvas>
@@ -197,7 +194,6 @@ button.primary:disabled{
 </main>
 
 <script type="module">
-/* 오늘 날짜 */
 document.getElementById("workDate").value =
   new Date().toISOString().slice(0,10);
 
@@ -209,7 +205,7 @@ import {
   getStorage, ref, listAll, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-/* Firestore */
+/* Firebase */
 const app = initializeApp({
   apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
   authDomain: "dj-safety.firebaseapp.com",
@@ -217,7 +213,6 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-/* Storage */
 const storageApp = initializeApp({
   apiKey: "AIzaSyDPP-hf5ja5zvSBPTgLt-a2fVzgbh3cfg0",
   authDomain: "dongjin-workplan.firebaseapp.com",
@@ -226,79 +221,39 @@ const storageApp = initializeApp({
 },"storage");
 const storage = getStorage(storageApp);
 
-/* 상태 */
+const siteId = document.getElementById("siteId");
+const workDate = document.getElementById("workDate");
+const riskBox = document.getElementById("riskBox");
+const confirmAll = document.getElementById("confirmAll");
+const startBtn = document.getElementById("startBtn");
+const planWarn = document.getElementById("planWarn");
+const workplanList = document.getElementById("workplanList");
+
 let todayRisks=[];
 let planOpened=false;
-
-/* ================= 모바일 대응 서명 ================= */
 let signed=false;
-let canvas, ctx, drawing=false, lx=0, ly=0;
 
-function initSignature(){
-  canvas=document.getElementById("signStart");
-  const rect=canvas.getBoundingClientRect();
-  const ratio=window.devicePixelRatio||1;
-
-  canvas.width=rect.width*ratio;
-  canvas.height=rect.height*ratio;
-  ctx=canvas.getContext("2d");
-  ctx.setTransform(ratio,0,0,ratio,0,0);
-  ctx.lineCap="round";
-  ctx.lineJoin="round";
-  ctx.lineWidth=4.5;
-
-  const pos=e=>{
-    const r=canvas.getBoundingClientRect();
-    const p=e.touches?e.touches[0]:e;
-    return{x:p.clientX-r.left,y:p.clientY-r.top};
-  };
-
-  const start=e=>{
-    e.preventDefault();
-    drawing=true;
-    signed=true;
-    const p=pos(e); lx=p.x; ly=p.y;
-    checkReady();
-  };
-  const move=e=>{
-    if(!drawing) return;
-    e.preventDefault();
-    const p=pos(e);
-    ctx.beginPath();
-    ctx.moveTo(lx,ly);
-    ctx.lineTo(p.x,p.y);
-    ctx.stroke();
-    lx=p.x; ly=p.y;
-  };
-  const end=()=>drawing=false;
-
-  canvas.addEventListener("mousedown",start);
-  canvas.addEventListener("mousemove",move);
-  canvas.addEventListener("mouseup",end);
-  canvas.addEventListener("mouseleave",end);
-  canvas.addEventListener("touchstart",start,{passive:false});
-  canvas.addEventListener("touchmove",move,{passive:false});
-  canvas.addEventListener("touchend",end);
-
-  document.getElementById("clearStart").onclick=()=>{
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    signed=false;
-    checkReady();
-  };
-}
-requestAnimationFrame(initSignature);
-
-/* 작업계획서 */
-window.loadWorkplanByEquipment = async ()=>{ /* 기존 코드 그대로 */ };
-
-/* 위험요인 */
+/* 위험요인 (기간 적용) */
 async function loadRisks(){
-  const snap=await getDocs(collection(db,"sites",siteId.value,"riskSets"));
-  riskBox.innerHTML="";
+  const snap = await getDocs(collection(db,"sites",siteId.value,"riskSets"));
+  const today = new Date(workDate.value);
   todayRisks=[];
+  riskBox.innerHTML="";
+
   snap.forEach(d=>{
-    (d.data().risks||[]).forEach(x=>todayRisks.push(x));
+    const r=d.data();
+    const st=new Date(r.startDate);
+    const en=new Date(r.endDate);
+    if(today>=st && today<=en){
+      (r.risks||[]).forEach(x=>todayRisks.push(x));
+    }
   });
+
+  if(todayRisks.length===0){
+    riskBox.innerHTML="적용 중 위험요인 없음";
+    return;
+  }
+
   todayRisks.forEach(r=>{
     riskBox.innerHTML+=`
       <div class="risk">
@@ -308,8 +263,98 @@ async function loadRisks(){
         </label>
       </div>`;
   });
+
+  document.querySelectorAll(".riskChk").forEach(c=>{
+    c.onchange=checkReady;
+  });
 }
 loadRisks();
+
+/* 작업계획서 */
+window.loadWorkplanByEquipment = async ()=>{
+  const eid = equipmentId.value.trim();
+  if(eid.length<4){alert("장비번호 입력");return;}
+
+  workplanList.innerHTML="<div class='notice'>📄 작업계획서 불러오는 중...</div>";
+  planOpened=false;
+  checkReady();
+
+  const last4=eid.slice(-4);
+  const root=ref(storage,"/");
+  const all=await listAll(root);
+
+  workplanList.innerHTML="";
+  for(const d of all.prefixes){
+    const t=await listAll(d);
+    for(const f of t.prefixes){
+      const files=await listAll(f);
+      for(const item of files.items){
+        if(item.fullPath.includes(last4)){
+          const url=await getDownloadURL(item);
+          planOpened=true;
+          workplanList.innerHTML+=`
+            <div class="plan-item">
+              ${item.fullPath}
+              <a href="${url}" target="_blank"
+                 onclick="planOpened=true;checkReady()">
+                작업계획서 열기
+              </a>
+            </div>`;
+        }
+      }
+    }
+  }
+  checkReady();
+};
+
+/* 서명 */
+let canvas,ctx,drawing=false,lx=0,ly=0;
+function initSign(){
+  canvas=document.getElementById("signStart");
+  const r=canvas.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=r.width*dpr;
+  canvas.height=r.height*dpr;
+  ctx=canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.lineWidth=4;
+  ctx.lineCap="round";
+
+  const pos=e=>{
+    const rect=canvas.getBoundingClientRect();
+    const p=e.touches?e.touches[0]:e;
+    return{x:p.clientX-rect.left,y:p.clientY-rect.top};
+  };
+
+  const start=e=>{
+    e.preventDefault();drawing=true;signed=true;
+    const p=pos(e);lx=p.x;ly=p.y;checkReady();
+  };
+  const move=e=>{
+    if(!drawing)return;e.preventDefault();
+    const p=pos(e);
+    ctx.beginPath();
+    ctx.moveTo(lx,ly);
+    ctx.lineTo(p.x,p.y);
+    ctx.stroke();
+    lx=p.x;ly=p.y;
+  };
+  const end=()=>drawing=false;
+
+  canvas.addEventListener("mousedown",start);
+  canvas.addEventListener("mousemove",move);
+  canvas.addEventListener("mouseup",end);
+  canvas.addEventListener("touchstart",start,{passive:false});
+  canvas.addEventListener("touchmove",move,{passive:false});
+  canvas.addEventListener("touchend",end);
+
+  clearStart.onclick=()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    signed=false;
+    checkReady();
+  };
+}
+window.onload=()=>setTimeout(initSign,0);
 
 /* 체크 */
 confirmAll.onchange=checkReady;
@@ -324,7 +369,7 @@ function checkReady(){
   startBtn.disabled=!(riskOk && signed);
 }
 
-/* 작업 시작 저장 */
+/* 작업개시 */
 startBtn.onclick=async()=>{
   await setDoc(doc(db,"sites",siteId.value,"equipmentLogs",
     `${workDate.value}_${operatorName.value}`),{
@@ -339,5 +384,6 @@ startBtn.onclick=async()=>{
   startMsg.innerText="작업개시 완료";
 };
 </script>
+
 </body>
 </html>
