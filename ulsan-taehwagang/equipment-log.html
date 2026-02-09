@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>장비운전원 작업 기록 | 울산 태화강</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  background:#f4f7ff;
+  color:#0b1b3b;
+}
+main{max-width:900px;margin:20px auto;padding:0 16px}
+.card{
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,64,128,.12);
+  padding:20px;
+  margin-bottom:20px
+}
+h2{margin:0 0 12px}
+label{font-size:14px;font-weight:700;color:#555;display:block;margin-top:12px}
+input{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #d9e2ef;
+  margin-top:6px;
+  font-size:16px;
+}
+
+/* 작업계획서 버튼 */
+.plan-btn{
+  width:100%;
+  padding:20px;
+  margin-top:18px;
+  border-radius:18px;
+  border:none;
+  background:linear-gradient(135deg,#ff7a00,#ffb000);
+  color:#fff;
+  font-size:19px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 16px 40px rgba(255,138,0,.45);
+}
+.plan-btn:disabled{background:#94a3b8}
+
+.plan-item{
+  background:#fff7ed;
+  border:2px solid #ffb000;
+  padding:14px;
+  border-radius:12px;
+  margin-top:12px;
+  font-weight:800;
+}
+.plan-item a{
+  display:inline-block;
+  margin-top:8px;
+  padding:8px 14px;
+  background:#ff7a00;
+  color:#fff;
+  border-radius:8px;
+  text-decoration:none;
+}
+
+.warn{
+  margin-top:14px;
+  padding:14px;
+  border-radius:12px;
+  background:#fee2e2;
+  color:#991b1b;
+  font-weight:900;
+  text-align:center;
+}
+
+.risk{
+  border:1px solid #cdd9ff;
+  border-radius:12px;
+  padding:14px;
+  background:#f9fbff;
+  margin-bottom:10px;
+}
+
+.signature-pad{
+  border:2px dashed #004080;
+  border-radius:10px;
+  width:100%;
+  height:220px;
+  background:#fff;
+  margin-top:10px;
+  touch-action:none;
+}
+
+button.primary{
+  width:100%;
+  padding:18px;
+  border:none;
+  border-radius:16px;
+  font-size:18px;
+  font-weight:900;
+  background:#004080;
+  color:#fff;
+  cursor:pointer;
+  margin-top:18px
+}
+button.primary:disabled{
+  background:#94a3b8;
+  cursor:not-allowed
+}
+.notice{
+  text-align:center;
+  font-weight:800;
+  color:#004080;
+  margin-top:12px
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<div class="card">
+  <h2>장비운전원 기본정보</h2>
+
+  <label>현장</label>
+  <input value="울산 태화강" readonly>
+
+  <label>오늘 날짜</label>
+  <input id="workDate" readonly>
+
+  <label>운전원 이름</label>
+  <input id="operatorName">
+
+  <label>장비 번호</label>
+  <input id="equipmentId" placeholder="예: 05가7082">
+</div>
+
+<button class="plan-btn" onclick="loadWorkplan()">
+  📄 작업계획서 확인 (장비번호 끝 4자리 기준)
+</button>
+
+<div id="workplanList"></div>
+
+<div id="planWarn" class="warn" style="display:none;">
+  ⚠ 작업계획서를 1회 이상 열어야 작업개시가 가능합니다
+</div>
+
+<div class="card">
+  <h2>금일 적용 위험요인</h2>
+  <div id="riskBox">불러오는 중...</div>
+
+  <label>
+    <input type="checkbox" id="confirmAll">
+    <b>모든 위험요인을 확인했습니다</b>
+  </label>
+</div>
+
+<div class="card">
+  <h2>작업 시작 서명</h2>
+  <canvas id="signStart" class="signature-pad"></canvas>
+  <button class="primary" onclick="clearSign()">서명 지우기</button>
+
+  <button class="primary" id="startBtn" disabled>작업 시작</button>
+  <div id="startMsg" class="notice"></div>
+</div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, setDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getStorage, ref, listAll, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+/* ================= 기본 ================= */
+const SITE_ID = "ulsan-taehwagang";
+document.getElementById("workDate").value =
+  new Date().toISOString().slice(0,10);
+
+/* ================= Firebase ================= */
+const app = initializeApp({
+  apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain: "dj-safety.firebaseapp.com",
+  projectId: "dj-safety"
+});
+const db = getFirestore(app);
+
+const storageApp = initializeApp({
+  apiKey: "AIzaSyDPP-hf5ja5zvSBPTgLt-a2fVzgbh3cfg0",
+  authDomain: "dongjin-workplan.firebaseapp.com",
+  projectId: "dongjin-workplan",
+  storageBucket: "dongjin-workplan.firebasestorage.app"
+},"storage");
+const storage = getStorage(storageApp);
+
+/* ================= 상태 ================= */
+let planOpened=false;
+let signed=false;
+
+/* ================= 위험요인 ================= */
+async function loadRisks(){
+  const riskBox=document.getElementById("riskBox");
+  riskBox.innerHTML="";
+  const snap=await getDocs(collection(db,"sites",SITE_ID,"riskSets"));
+  const today=new Date();
+
+  snap.forEach(d=>{
+    const r=d.data();
+    if(today>=new Date(r.startDate) && today<=new Date(r.endDate)){
+      (r.risks||[]).forEach(x=>{
+        riskBox.innerHTML+=`
+          <div class="risk">
+            <label>
+              <input type="checkbox" class="riskChk">
+              ${x.detail}<br><i>${x.counter}</i>
+            </label>
+          </div>`;
+      });
+    }
+  });
+
+  document.querySelectorAll(".riskChk").forEach(c=>c.onchange=checkReady);
+}
+loadRisks();
+
+/* ================= 작업계획서 (끝 4자리) ================= */
+async function listAllRecursive(ref0, arr=[]){
+  const r=await listAll(ref0);
+  arr.push(...r.items);
+  for(const p of r.prefixes){
+    await listAllRecursive(p,arr);
+  }
+  return arr;
+}
+
+window.loadWorkplan = async ()=>{
+  const eq=document.getElementById("equipmentId").value.trim();
+  if(eq.length<4){alert("장비번호 입력");return;}
+  const last4=eq.slice(-4);
+
+  const list=document.getElementById("workplanList");
+  list.innerHTML="검색 중...";
+  planOpened=false;
+
+  const files=await listAllRecursive(ref(storage,`sites/${SITE_ID}`));
+  list.innerHTML="";
+
+  for(const f of files){
+    if(f.name.includes(last4)){
+      const url=await getDownloadURL(f);
+      planOpened=true;
+      list.innerHTML+=`
+        <div class="plan-item">
+          ${f.fullPath}
+          <a href="${url}" target="_blank"
+             onclick="planOpened=true;checkReady()">열기</a>
+        </div>`;
+    }
+  }
+
+  if(!planOpened){
+    list.innerHTML="<div class='warn'>작업계획서를 찾을 수 없습니다</div>";
+  }
+  checkReady();
+};
+
+/* ================= 서명 ================= */
+let canvas,ctx,drawing=false,lx=0,ly=0;
+canvas=document.getElementById("signStart");
+const r=canvas.getBoundingClientRect();
+const dpr=window.devicePixelRatio||1;
+canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+ctx=canvas.getContext("2d");
+ctx.setTransform(dpr,0,0,dpr,0,0);
+ctx.lineWidth=4; ctx.lineCap="round";
+
+const pos=e=>{
+  const rc=canvas.getBoundingClientRect();
+  const p=e.touches?e.touches[0]:e;
+  return{x:p.clientX-rc.left,y:p.clientY-rc.top};
+};
+canvas.onmousedown=e=>{drawing=true;signed=true;({x:lx,y:ly}=pos(e));checkReady();}
+canvas.onmousemove=e=>{
+  if(!drawing)return;
+  const p=pos(e);
+  ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y); ctx.stroke();
+  lx=p.x; ly=p.y;
+};
+canvas.onmouseup=()=>drawing=false;
+canvas.ontouchstart=e=>{e.preventDefault();drawing=true;signed=true;({x:lx,y:ly}=pos(e));checkReady();}
+canvas.ontouchmove=e=>{
+  e.preventDefault(); if(!drawing)return;
+  const p=pos(e);
+  ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y); ctx.stroke();
+  lx=p.x; ly=p.y;
+};
+canvas.ontouchend=()=>drawing=false;
+
+window.clearSign=()=>{
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  signed=false;
+  checkReady();
+};
+
+/* ================= 체크 ================= */
+function checkReady(){
+  const riskOk=[...document.querySelectorAll(".riskChk")].every(c=>c.checked);
+  document.getElementById("planWarn").style.display =
+    planOpened ? "none":"block";
+  document.getElementById("startBtn").disabled=!(riskOk && signed && planOpened);
+}
+
+/* ================= 저장 ================= */
+document.getElementById("startBtn").onclick=async()=>{
+  await setDoc(doc(db,"sites",SITE_ID,"equipmentLogs",
+    `${document.getElementById("workDate").value}_${operatorName.value}`),{
+    operatorName:operatorName.value,
+    equipmentId:equipmentId.value,
+    workplanConfirmed:true,
+    startSignature:canvas.toDataURL(),
+    startAt:serverTimestamp()
+  });
+  document.getElementById("startMsg").innerText="작업개시 완료";
+};
+</script>
+
+</body>
+</html>

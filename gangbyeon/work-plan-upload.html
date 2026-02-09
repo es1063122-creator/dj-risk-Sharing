@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>강변아이파크 작업계획서 업로드/다운로드 | 동진토건</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Firebase SDK (모듈 버전) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getStorage, ref, uploadBytes, listAll, getDownloadURL, deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    /* ================= 현장 고정 ================= */
+    const SITE_ID   = "gangbyeon-ipark";
+    const SITE_NAME = "강변아이파크";
+
+    /* ================= Firebase 설정 ================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPP-hf5ja5zvSBPTgLt-a2fVzgbh3cfg0",
+      authDomain: "dongjin-workplan.firebaseapp.com",
+      projectId: "dongjin-workplan",
+      storageBucket: "dongjin-workplan.firebasestorage.app",
+      messagingSenderId: "311423263390",
+      appId: "1:311423263390:web:0e73f2d0128bce529f518f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    /* ================= 공통: 현장 루트 ================= */
+    function siteRoot() {
+      return ref(storage, `sites/${SITE_ID}`);
+    }
+
+    /* =========================================================
+       🔥 재귀적으로 전체 파일 리스트 가져오기
+    ========================================================= */
+    async function listAllFilesRecursively(folderRef, fileList = []) {
+      const result = await listAll(folderRef);
+
+      result.items.forEach(item => fileList.push(item));
+
+      for (const prefix of result.prefixes) {
+        await listAllFilesRecursively(prefix, fileList);
+      }
+
+      return fileList;
+    }
+
+    /* =========================================================
+       🔥 업로드 기능
+       경로: sites/{SITE_ID}/{date}/{type}/{number}_{filename}
+    ========================================================= */
+    window.uploadFile = async function () {
+      const date = document.getElementById("dateInput").value;
+      const type = document.getElementById("typeInput").value;
+      const number = document.getElementById("numberInput").value;
+      const file = document.getElementById("fileInput").files[0];
+
+      if (!date || !type || !number || !file) {
+        alert("작성일자, 장비종류, 장비번호, 파일을 모두 입력/선택하세요.");
+        return;
+      }
+
+      const safeNumber = number.replace(/\s+/g, "_");
+      const filePath = `sites/${SITE_ID}/${date}/${type}/${safeNumber}_${file.name}`;
+      const fileRef = ref(storage, filePath);
+
+      try {
+        await uploadBytes(fileRef, file);
+        alert("📤 작업계획서 업로드 완료!");
+        loadFileList();
+      } catch (err) {
+        console.error("업로드 오류:", err);
+        alert("업로드 중 오류 발생! 콘솔을 확인하세요.");
+      }
+    };
+
+    /* =========================================================
+       🔥 파일 삭제
+    ========================================================= */
+    window.deleteFile = async function (filePath) {
+      if (!confirm("정말 이 파일을 삭제하시겠습니까?")) return;
+
+      const fileRef = ref(storage, filePath);
+
+      try {
+        await deleteObject(fileRef);
+        alert("🗑 파일이 삭제되었습니다.");
+        loadFileList();
+      } catch (err) {
+        console.error("삭제 오류:", err);
+        alert("삭제 중 오류가 발생했습니다.");
+      }
+    };
+
+    /* =========================================================
+       🔥 파일 목록 표시 (현장별)
+    ========================================================= */
+    async function loadFileList() {
+      const listDiv = document.getElementById("fileList");
+      listDiv.innerHTML = `<h3>📂 ${SITE_NAME} 작업계획서 목록</h3>`;
+
+      try {
+        const allFiles = await listAllFilesRecursively(siteRoot());
+
+        if (allFiles.length === 0) {
+          listDiv.innerHTML += "<p>아직 업로드된 파일이 없습니다.</p>";
+          return;
+        }
+
+        for (const item of allFiles) {
+          const url = await getDownloadURL(item);
+
+          listDiv.innerHTML += `
+            <div class="file-item">
+              <div class="file-meta">${item.fullPath}</div>
+              <div>
+                <a class="download-btn" href="${url}" target="_blank">다운로드</a>
+                <button class="delete-btn" onclick="deleteFile('${item.fullPath}')">삭제</button>
+              </div>
+            </div>
+          `;
+        }
+
+      } catch (err) {
+        console.error("목록 불러오기 오류:", err);
+        listDiv.innerHTML += "<p>목록을 불러오지 못했습니다.</p>";
+      }
+    }
+
+    /* 페이지 로드시 자동 실행 */
+    loadFileList();
+  </script>
+
+  <style>
+    body{
+      font-family:"Noto Sans KR",sans-serif;
+      background:#eef3ff;
+      margin:0;
+      padding:20px;
+    }
+    .container{
+      max-width:900px;
+      margin:0 auto;
+      background:#fff;
+      padding:24px;
+      border-radius:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.12);
+    }
+    h1{
+      text-align:center;
+      color:#003a7a;
+      font-size:22px;
+      margin-bottom:20px;
+    }
+    label{ font-weight:600; margin-top:10px; display:block; }
+    input, select{
+      width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;
+      font-size:15px; box-sizing:border-box;
+    }
+    .btn{
+      width:100%; margin-top:20px; padding:14px;
+      background:#004aad; border:none; color:#fff; font-size:17px;
+      border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    .btn:hover{ background:#003a7a; }
+
+    .file-list{ margin-top:30px; }
+    .file-item{
+      background:#f3f6ff; padding:12px 14px; margin-bottom:10px; border-radius:10px;
+      display:flex; justify-content:space-between; align-items:center; font-size:14px;
+    }
+    .file-meta{ max-width:60%; word-break:break-all; }
+    .download-btn{
+      background:#007bff; color:#fff; padding:8px 12px; border-radius:6px;
+      text-decoration:none; font-size:13px;
+    }
+    .delete-btn{
+      background:#dc3545; color:#fff; padding:8px 12px; border:none;
+      font-size:13px; border-radius:6px; cursor:pointer; margin-left:6px;
+    }
+  </style>
+
+</head>
+<body>
+
+  <div class="container">
+
+    <h1>강변아이파크 작업계획서 업로드 / 다운로드</h1>
+
+    <label>작성일자</label>
+    <input type="date" id="dateInput">
+
+    <label>장비종류</label>
+    <select id="typeInput">
+      <option value="">선택하세요</option>
+      <option>굴착기</option>
+      <option>지게차</option>
+      <option>로더</option>
+      <option>바브켓</option>
+      <option>항타기</option>
+      <option>크레인</option>
+      <option>덤프</option>
+      <option>포장장비</option>
+      <option>기타 건설기계</option>
+    </select>
+
+    <label>장비번호</label>
+    <input type="text" id="numberInput" placeholder="예: 01가1234">
+
+    <label>작업계획서 파일(PDF, PPT, 이미지 등)</label>
+    <input type="file" id="fileInput">
+
+    <button class="btn" onclick="uploadFile()">Firebase Storage에 업로드</button>
+
+    <div class="file-list" id="fileList"></div>
+
+  </div>
+
+</body>
+</html>

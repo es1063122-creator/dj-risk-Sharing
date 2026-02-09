@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리자 대시보드 | 울산우정동</title>
+
+<!-- SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<!-- XlsxPopulate -->
+<script src="https://unpkg.com/xlsx-populate/browser/xlsx-populate.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+body{margin:0;font-family:"Noto Sans KR",sans-serif;background:#f4f7ff;color:#0b1b3b}
+header{background:#004080;color:#fff;padding:20px;font-size:20px;font-weight:900}
+main{max-width:1200px;margin:20px auto;padding:0 16px}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;
+box-shadow:0 10px 30px rgba(0,64,128,.12)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+label{font-size:13px;font-weight:700;color:#555}
+input{padding:10px;border-radius:10px;border:1px solid #cdd9ff;width:100%}
+button{padding:12px 20px;border-radius:10px;border:none;font-weight:900;
+background:#004080;color:#fff;cursor:pointer}
+button:hover{opacity:.9}
+.item{border:1px solid #cdd9ff;border-radius:12px;padding:18px;margin-top:16px;background:#f9fbff}
+.sig-img{max-width:220px;border:1px solid #ccc;border-radius:8px;background:#fff;margin-top:8px}
+.muted{color:#64748b;font-size:13px}
+.risk{border-left:3px solid #004080;margin-top:10px;padding-left:14px}
+.downloadArea{display:flex;gap:10px;margin-top:10px}
+.downloadArea button{flex:1}
+.badge-ok{background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800}
+.badge-warn{background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800}
+</style>
+</head>
+
+<body>
+
+<header>관리자 대시보드 · 울산우정동</header>
+
+<main>
+
+<!-- 조회 조건 -->
+<div class="card">
+  <h2>조회 조건</h2>
+  <div class="row">
+    <div>
+      <label>현장 ID</label>
+      <input id="siteId" value="ulsan-woojung" readonly>
+    </div>
+    <div>
+      <label>조회 시작일</label>
+      <input id="startDate" type="date">
+    </div>
+    <div>
+      <label>조회 종료일</label>
+      <input id="endDate" type="date">
+    </div>
+    <div>
+      <label>이름 필터 (선택)</label>
+      <input id="nameFilter" placeholder="예: 김대홍">
+    </div>
+    <div>
+      <button id="loadBtn">조회</button>
+    </div>
+  </div>
+</div>
+
+<!-- 다운로드 -->
+<div class="card">
+  <h2>다운로드</h2>
+  <div class="downloadArea">
+    <button id="csvBtn">CSV 다운로드</button>
+    <button id="excelBtn">출력장 엑셀 다운로드</button>
+  </div>
+</div>
+
+<!-- 결과 -->
+<div class="card">
+  <h2>조회 결과</h2>
+  <div id="listBox" class="muted">조회 조건을 입력하세요</div>
+</div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, query, where, getDocs, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ================= Firebase ================= */
+const app = initializeApp({
+  apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain: "dj-safety.firebaseapp.com",
+  projectId: "dj-safety"
+});
+const db = getFirestore(app);
+
+/* ================= DOM ================= */
+const siteId = document.getElementById("siteId");
+const startDate = document.getElementById("startDate");
+const endDate = document.getElementById("endDate");
+const nameFilter = document.getElementById("nameFilter");
+const listBox = document.getElementById("listBox");
+
+const csvBtn = document.getElementById("csvBtn");
+const excelBtn = document.getElementById("excelBtn");
+const loadBtn = document.getElementById("loadBtn");
+
+let records = [];
+
+/* 날짜 기본값 */
+const today = new Date().toISOString().slice(0,10);
+startDate.value = today;
+endDate.value = today;
+
+/* ================= 조회 ================= */
+loadBtn.onclick = async () => {
+  records = [];
+  listBox.innerHTML = "불러오는 중...";
+
+  const start = Timestamp.fromDate(new Date(startDate.value + "T00:00:00"));
+  const end   = Timestamp.fromDate(new Date(endDate.value + "T23:59:59"));
+
+  const q = query(
+    collection(db,"sites",siteId.value,"equipmentLogs"),
+    where("startAt", ">=", start),
+    where("startAt", "<=", end)
+  );
+
+  const snap = await getDocs(q);
+  listBox.innerHTML = "";
+
+  snap.forEach(docSnap=>{
+    const d = docSnap.data();
+    if(nameFilter.value && !d.operatorName?.includes(nameFilter.value)) return;
+
+    const status = d.endAt
+      ? `<span class="badge-ok">종료</span>`
+      : `<span class="badge-warn">미종료</span>`;
+
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <b>${d.operatorName}</b> ${status}<br>
+      <span class="muted">
+        장비번호: ${d.equipmentId || "-"} ·
+        시작: ${d.startAt.toDate().toLocaleString()}
+      </span>
+
+      <h4>작업 시작 서명</h4>
+      ${d.startSignature ? `<img class="sig-img" src="${d.startSignature}">` : "없음"}
+
+      <h4>작업 종료 서명</h4>
+      ${d.endSignature ? `<img class="sig-img" src="${d.endSignature}">` : "없음"}
+
+      <div class="risk">
+        ${(d.risks||[]).map(r=>`
+          <div>
+            <b>${r.category || "위험요인"}</b><br>
+            ${r.detail || ""}<br>
+            <span class="muted">대책: ${r.counter || ""}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    listBox.appendChild(div);
+
+    records.push({
+      이름: d.operatorName,
+      장비번호: d.equipmentId,
+      현장ID: siteId.value,
+      시작시간: d.startAt.toDate().toLocaleString(),
+      상태: d.endAt ? "종료" : "미종료",
+      위험요인: (d.risks||[]).map(r=>r.detail).join(" / ")
+    });
+  });
+
+  if(!records.length){
+    listBox.innerHTML = "<div class='muted'>조회 결과 없음</div>";
+  }
+};
+
+/* ================= CSV 다운로드 ================= */
+csvBtn.onclick = () => {
+  if(!records.length) return alert("데이터 없음");
+  const ws = XLSX.utils.json_to_sheet(records);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "data");
+  XLSX.writeFile(wb, `equipment_${startDate.value}_${endDate.value}.csv`);
+};
+
+/* ================= 출력장 엑셀 ================= */
+excelBtn.onclick = async () => {
+  if(!records.length) return alert("데이터 없음");
+
+  const res = await fetch(
+    "https://raw.githubusercontent.com/es1063122-creator/dj-risk-Sharing/main/Worker%20Output%20Report.xlsx"
+  );
+  const buf = await res.arrayBuffer();
+  const wb = await XlsxPopulate.fromDataAsync(buf);
+  const sh = wb.sheet(0);
+
+  sh.cell("C3").value(`현장명 : 울산우정동`);
+
+  records.forEach((r,i)=>{
+    const row = 5 + i;
+    sh.cell(`A${row}`).value(i+1);
+    sh.cell(`C${row}`).value("장비작업");
+    sh.cell(`I${row}`).value(r.이름);
+    sh.cell(`O${row}`).value(1.0);
+  });
+
+  const blob = await wb.outputAsync("blob");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `출력장_울산우정동_${startDate.value}.xlsx`;
+  a.click();
+};
+</script>
+
+</body>
+</html>

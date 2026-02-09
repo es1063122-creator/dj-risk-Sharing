@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>위험요인 등록 현황 | 울산우정동</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --blue:#004080;
+  --bg:#f4f7ff;
+  --card:#ffffff;
+  --muted:#64748b;
+}
+
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  background:var(--bg);
+  color:#0b1b3b;
+}
+
+header{
+  background:var(--blue);
+  color:#fff;
+  padding:16px 20px;
+  font-weight:900;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+header button{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  background:#ffffff22;
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+}
+
+main{
+  max-width:1100px;
+  margin:20px auto;
+  padding:0 20px 40px;
+}
+
+.card{
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,64,128,.12);
+  padding:20px;
+  margin-bottom:24px;
+}
+
+.card h2{
+  margin:0 0 14px;
+  font-size:18px;
+}
+
+input{
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #cdd9ff;
+  margin-right:10px;
+}
+
+.btn{
+  padding:10px 16px;
+  background:#004080;
+  border:none;
+  color:#fff;
+  border-radius:10px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.btn-new{
+  background:#0f4c81;
+  color:#fff;
+  padding:12px 20px;
+  border-radius:14px;
+  font-size:16px;
+  font-weight:800;
+  margin-top:14px;
+}
+
+.list-item{
+  border:1px solid #dbeafe;
+  border-radius:14px;
+  background:#f9fbff;
+  margin-bottom:16px;
+  padding:16px;
+}
+
+.title{font-size:17px;font-weight:800;}
+.date{font-size:14px;color:#475569}
+.info{font-size:14px;color:#334155;margin-top:4px}
+
+.status-pill{
+  display:inline-block;
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:13px;
+  color:#fff;
+}
+
+.btn-small{
+  padding:6px 12px;
+  border-radius:8px;
+  font-size:13px;
+  cursor:pointer;
+  border:none;
+  color:#fff;
+}
+
+.btn-edit{background:#004080;}
+.btn-del{background:#dc2626;}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>위험요인 등록 현황 · 울산우정동</div>
+  <button onclick="location.href='dashboard.html'">대시보드로</button>
+</header>
+
+<main>
+
+<div class="card">
+  <h2>조회 조건</h2>
+
+  <div style="margin-bottom:10px;">
+    <label>시작일</label>
+    <input id="startDate" type="date">
+    <label>종료일</label>
+    <input id="endDate" type="date">
+    <button class="btn" onclick="loadList()">조회</button>
+  </div>
+
+  <button class="btn-new" onclick="newRisk()">+ 신규 위험요인 등록</button>
+</div>
+
+<div class="card">
+  <h2>등록된 위험요인 목록</h2>
+  <div id="listBox">불러오는 중...</div>
+</div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* 🔒 울산우정동 고정 */
+const FIXED_SITE_ID = "ulsan-woojung";
+const FIXED_SITE_NAME = "울산우정동";
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain: "dj-safety.firebaseapp.com",
+  projectId: "dj-safety"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const listBox = document.getElementById("listBox");
+const startInput = document.getElementById("startDate");
+const endInput = document.getElementById("endDate");
+
+window.newRisk = () => {
+  location.href = `risk-admin.html?siteId=${FIXED_SITE_ID}`;
+};
+
+window.loadList = async () => {
+  listBox.innerHTML = "불러오는 중...";
+
+  const snap = await getDocs(collection(db,"sites",FIXED_SITE_ID,"riskSets"));
+  const arr = [];
+  snap.forEach(docu => arr.push({ id: docu.id, ...docu.data() }));
+
+  if(arr.length === 0){
+    listBox.innerHTML = "<div style='color:#64748b;'>등록된 위험요인 없음</div>";
+    return;
+  }
+
+  const startValue = startInput.value ? new Date(startInput.value) : null;
+  const endValue = endInput.value ? new Date(endInput.value) : null;
+
+  let filtered = arr;
+
+  if(startValue){
+    filtered = filtered.filter(i => new Date(i.endDate) >= startValue);
+  }
+  if(endValue){
+    filtered = filtered.filter(i => new Date(i.startDate) <= endValue);
+  }
+
+  filtered.sort((a,b)=> new Date(a.startDate) - new Date(b.startDate));
+  listBox.innerHTML = "";
+
+  filtered.forEach(item => {
+    const now = new Date();
+    const st = new Date(item.startDate);
+    const en = new Date(item.endDate);
+
+    let status = "대기", color = "#6b7280";
+    if(now >= st && now <= en){ status="적용 중"; color="#16a34a"; }
+    else if(now > en){ status="종료"; color="#dc2626"; }
+
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.innerHTML = `
+      <div class="title">${FIXED_SITE_NAME}</div>
+      <div class="date">${item.startDate} ~ ${item.endDate}</div>
+      <div class="info">위험요인 ${item.risks?.length || 0}건</div>
+
+      <div style="margin-top:12px;">
+        <span class="status-pill" style="background:${color};">${status}</span>
+        <button class="btn-small btn-edit" onclick="editRisk('${item.id}')">수정</button>
+        <button class="btn-small btn-del" onclick="deleteRisk('${item.id}')">삭제</button>
+      </div>
+    `;
+    listBox.appendChild(div);
+  });
+};
+
+window.editRisk = (id) => {
+  location.href = `risk-admin.html?siteId=${FIXED_SITE_ID}&id=${id}`;
+};
+
+window.deleteRisk = async (id) => {
+  if(!confirm("정말 삭제하시겠습니까?")) return;
+  await deleteDoc(doc(db,"sites",FIXED_SITE_ID,"riskSets",id));
+  loadList();
+};
+
+/* 페이지 로드시 자동 조회 */
+loadList();
+</script>
+
+</body>
+</html>

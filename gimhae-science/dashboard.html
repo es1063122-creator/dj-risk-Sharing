@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리자 대시보드 | dj-safety</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  background:#f4f7ff;
+  color:#0b1b3b;
+}
+main{
+  max-width:1100px;
+  margin:20px auto;
+  padding:0 16px;
+}
+
+/* ================= 상단 버튼 ================= */
+.top-btns{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.top-btns .btn{
+  flex:1;
+  min-width:170px;
+  padding:14px;
+  border-radius:14px;
+  font-weight:900;
+  font-size:14px;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+}
+.btn.blue{background:#003366}
+.btn.green{background:#16a34a}
+.btn.orange{background:#f97316}
+.btn.purple{background:#7c3aed}
+
+/* ================= 카드 ================= */
+.card{
+  background:#fff;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(0,64,128,.12);
+  padding:20px;
+  margin-bottom:20px;
+}
+h2{
+  margin:0 0 12px;
+  font-size:20px;
+}
+
+/* ================= 요약 박스 ================= */
+.summary{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:14px;
+}
+.summary-box{
+  padding:18px;
+  border-radius:14px;
+  background:#f8fbff;
+  border:1px solid #cdd9ff;
+}
+.summary-box b{
+  font-size:26px;
+  display:block;
+  margin-top:6px;
+}
+
+/* ================= 리스트 ================= */
+.list{
+  margin-top:10px;
+}
+.item{
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #cdd9ff;
+  margin-bottom:8px;
+  background:#fff;
+}
+.warn{
+  border-color:#ef4444;
+  background:#fff5f5;
+}
+.ok{
+  border-color:#22c55e;
+  background:#f0fdf4;
+}
+.small{
+  font-size:13px;
+  color:#475569;
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<!-- 상단 관리자 버튼 -->
+<div class="top-btns">
+  <button class="btn blue" onclick="location.href='dashboard.html'">📊 금일 작업현황</button>
+  <button class="btn green" onclick="location.href='admin-check-dashboard.html'">👷 근로자 확인현황</button>
+  <button class="btn orange" onclick="location.href='risk-list.html'">⚠ 위험요인 등록현황</button>
+  <button class="btn purple" onclick="location.href='work-plan-upload.html'">📄 장비 작업계획서 업로드</button>
+</div>
+
+<!-- ================= 금일 요약 ================= -->
+<div class="card">
+  <h2>📌 금일 작업 요약</h2>
+  <div class="summary">
+    <div class="summary-box">
+      근로자 작업 시작
+      <b id="workerStartCnt">0</b>
+    </div>
+    <div class="summary-box">
+      근로자 작업 종료
+      <b id="workerEndCnt">0</b>
+    </div>
+    <div class="summary-box">
+      장비 작업 개시
+      <b id="equipStartCnt">0</b>
+    </div>
+    <div class="summary-box">
+      ⚠ 작업계획서 미확인 장비
+      <b id="equipWarnCnt" style="color:#ef4444">0</b>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 근로자 현황 ================= -->
+<div class="card">
+  <h2>👷 근로자 작업 현황</h2>
+  <div id="workerList" class="list"></div>
+</div>
+
+<!-- ================= 장비 현황 ================= -->
+<div class="card">
+  <h2>🚜 장비 작업 현황</h2>
+  <div id="equipmentList" class="list"></div>
+</div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* Firebase */
+const app = initializeApp({
+  apiKey:"AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain:"dj-safety.firebaseapp.com",
+  projectId:"dj-safety"
+});
+const db = getFirestore(app);
+
+/* 🔒 현장 고정 (김해사이언스) */
+const siteId = "gimhae-science";
+const today = new Date().toISOString().slice(0,10);
+
+/* DOM */
+const workerList = document.getElementById("workerList");
+const equipmentList = document.getElementById("equipmentList");
+
+let workerStart=0, workerEnd=0, equipStart=0, equipWarn=0;
+
+/* ================= 근로자 ================= */
+const workerSnap = await getDocs(collection(db,"sites",siteId,"workerLogs"));
+workerSnap.forEach(d=>{
+  const v=d.data();
+  if(v.date!==today) return;
+
+  workerStart++;
+  if(v.endAt) workerEnd++;
+
+  workerList.innerHTML+=`
+    <div class="item ${v.endAt?'ok':'warn'}">
+      <b>${v.name}</b> (${v.jobType||'-'})
+      <div class="small">
+        시작: ${v.startAt ? '✔' : '✖'} /
+        종료: ${v.endAt ? '✔' : '미종료'}
+      </div>
+    </div>`;
+});
+
+/* ================= 장비 ================= */
+const equipSnap = await getDocs(collection(db,"sites",siteId,"equipmentLogs"));
+equipSnap.forEach(d=>{
+  const v=d.data();
+  if(!v.startAt) return;
+
+  equipStart++;
+  const planOk = v.workPlanConfirmed === true;
+
+  if(!planOk) equipWarn++;
+
+  equipmentList.innerHTML+=`
+    <div class="item ${planOk?'ok':'warn'}">
+      <b>${v.equipmentType||'장비'}</b> (${v.equipmentId||'-'})
+      <div class="small">
+        작업계획서: ${planOk?'확인':'❌ 미확인'}
+      </div>
+    </div>`;
+});
+
+/* 요약 반영 */
+document.getElementById("workerStartCnt").innerText=workerStart;
+document.getElementById("workerEndCnt").innerText=workerEnd;
+document.getElementById("equipStartCnt").innerText=equipStart;
+document.getElementById("equipWarnCnt").innerText=equipWarn;
+</script>
+
+</body>
+</html>

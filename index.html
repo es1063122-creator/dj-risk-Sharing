@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>동진토건 현장 안전관리 시스템</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --blue:#004080;
+  --blue2:#2a6cf6;
+  --bg:#f4f7ff;
+  --card:#ffffff;
+  --line:#dbe5ff;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%, #e8f0ff 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, #e0f7f5 0%, transparent 40%),
+    var(--bg);
+  color:#0b1b3b;
+  min-height:100vh;
+}
+
+main{
+  max-width:1100px;
+  margin:0 auto;
+  padding:40px 16px 80px;
+}
+
+/* ===== 헤더 ===== */
+.header{
+  text-align:center;
+  margin-bottom:40px;
+}
+.header h1{
+  margin:0;
+  font-size:30px;
+  font-weight:900;
+}
+.header p{
+  margin-top:10px;
+  font-size:15px;
+  color:#475569;
+  font-weight:700;
+}
+
+/* ===== 현장 카드 ===== */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:22px;
+}
+
+.site-card{
+  background:var(--card);
+  border-radius:24px;
+  padding:28px 22px;
+  box-shadow:0 18px 45px rgba(0,64,128,.18);
+  border:2px solid var(--line);
+  cursor:pointer;
+  transition:.18s;
+  position:relative;
+  overflow:hidden;
+}
+.site-card::before{
+  content:"";
+  position:absolute;
+  left:0;top:0;
+  width:100%;height:6px;
+  background:linear-gradient(90deg,var(--blue),var(--blue2));
+}
+.site-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 26px 60px rgba(0,64,128,.28);
+}
+
+.site-name{
+  font-size:22px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+.site-sub{
+  font-size:14px;
+  color:#64748b;
+  font-weight:700;
+  line-height:1.6;
+}
+
+.enter{
+  margin-top:20px;
+  display:inline-block;
+  padding:12px 18px;
+  border-radius:999px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:#fff;
+  font-weight:900;
+  font-size:14px;
+}
+
+/* ===== 푸터 ===== */
+.footer{
+  margin-top:60px;
+  text-align:center;
+  font-size:12px;
+  color:#94a3b8;
+  line-height:1.6;
+}
+</style>
+</head>
+
+<body>
+<main>
+
+  <!-- 헤더 -->
+  <div class="header">
+    <h1>동진토건 현장 안전관리 시스템</h1>
+    <p>
+      현장을 선택하여 작업 시작 · 관리자 관리 · 위험성평가를 진행하세요
+    </p>
+  </div>
+
+  <!-- 현장 목록 -->
+  <div class="grid">
+
+    <div class="site-card" onclick="go('gangbyeon')">
+      <div class="site-name">강변아이파크</div>
+      <div class="site-sub">
+        서울 · 공동주택 현장<br>
+        근로자 · 장비 · 위험요인 관리
+      </div>
+      <div class="enter">현장 입장</div>
+    </div>
+
+    <div class="site-card" onclick="go('gimhae-science')">
+      <div class="site-name">김해 사이언스</div>
+      <div class="site-sub">
+        김해 · 연구시설 현장<br>
+        작업계획서 · 장비 관리
+      </div>
+      <div class="enter">현장 입장</div>
+    </div>
+
+    <div class="site-card" onclick="go('ulsan-taehwagang')">
+      <div class="site-name">울산 태화강</div>
+      <div class="site-sub">
+        울산 · 하천 정비 현장<br>
+        위험요인 · 근로자 관리
+      </div>
+      <div class="enter">현장 입장</div>
+    </div>
+
+    <div class="site-card" onclick="go('ulsan-woojung')">
+      <div class="site-name">울산 우정동</div>
+      <div class="site-sub">
+        울산 · 도심 공사 현장<br>
+        작업 시작 · 종료 관리
+      </div>
+      <div class="enter">현장 입장</div>
+    </div>
+
+  </div>
+
+  <!-- 푸터 -->
+  <div class="footer">
+    Dongjin Construction Co., Ltd.<br>
+    KDH-Safety  System
+  </div>
+
+</main>
+
+<script>
+function go(folder){
+  location.href = `./${folder}/index.html`;
+}
+</script>
+
+</body>
+</html>

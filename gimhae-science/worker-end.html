@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>작업 종료 | 김해사이언스</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --blue:#004080;
+  --blue2:#1e66d0;
+  --mint:#00b8a9;
+  --bg:#f2f6ff;
+  --line:#dbe5ff;
+  --text:#0b1b3b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 10% 10%, #e8f0ff 0%, transparent 42%),
+    radial-gradient(circle at 90% 20%, #e0f7f5 0%, transparent 42%),
+    var(--bg);
+}
+main{max-width:760px;margin:20px auto;padding:0 16px}
+.card{
+  position:relative;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 18px 50px rgba(0,64,128,.18);
+  padding:26px;
+  margin-bottom:26px;
+}
+.card::before{
+  content:"";
+  position:absolute;left:0;top:0;width:100%;height:7px;
+  background:linear-gradient(90deg,var(--blue2),var(--mint));
+}
+h2{
+  margin:0 0 16px;
+  font-size:22px;
+  font-weight:900;
+  color:var(--blue);
+}
+label{
+  font-size:15px;
+  font-weight:900;
+  margin-top:14px;
+  display:block;
+}
+input,select,textarea{
+  width:100%;
+  padding:16px;
+  margin-top:6px;
+  border-radius:14px;
+  border:2px solid var(--line);
+  font-size:16px;
+  background:#f9fbff;
+}
+textarea{min-height:90px}
+.important{
+  border-color:var(--blue2);
+  font-weight:900;
+  font-size:18px;
+}
+.info{
+  background:#eef4ff;
+  border-radius:14px;
+  padding:14px;
+  font-size:15px;
+  font-weight:800;
+}
+.signature-wrap{
+  margin-top:16px;
+  padding:16px;
+  border-radius:18px;
+  border:3px dashed var(--blue2);
+}
+.signature-pad{
+  width:100%;
+  height:220px;
+  background:#fff;
+  border-radius:14px;
+  touch-action:none;
+}
+.signature-actions{display:flex;gap:12px;margin-top:12px}
+.sub-btn{
+  flex:1;
+  padding:14px;
+  border-radius:14px;
+  font-weight:900;
+  border:none;
+  cursor:pointer;
+  background:#e6f0ff;
+  color:var(--blue2);
+}
+button.primary{
+  width:100%;
+  padding:20px;
+  border:none;
+  border-radius:20px;
+  font-weight:900;
+  font-size:19px;
+  background:linear-gradient(135deg,var(--blue2),var(--mint));
+  color:#fff;
+  cursor:pointer;
+  margin-top:22px;
+}
+button.primary:disabled{
+  background:#9aa7bd;
+  cursor:not-allowed;
+}
+.notice{
+  text-align:center;
+  font-weight:900;
+  margin-top:16px;
+  font-size:17px;
+  color:var(--blue2);
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<div class="card">
+  <h2>작업 종료 · 김해사이언스</h2>
+
+  <label>현장 ID</label>
+  <input id="siteId" value="gimhae-science" readonly>
+
+  <label>작업 날짜</label>
+  <input id="workDate" type="date">
+
+  <label>이름 (입력 시 자동 조회)</label>
+  <input id="workerName" class="important">
+
+  <label>생년월일</label>
+  <select id="birthSelect" disabled>
+    <option value="">자동 선택</option>
+  </select>
+</div>
+
+<div class="card" id="startInfo" style="display:none">
+  <h2>작업 시작 정보</h2>
+  <div class="info" id="startInfoBox"></div>
+</div>
+
+<div class="card" id="endSection" style="display:none">
+  <h2>작업 종료 확인</h2>
+
+  <label>금일 특이사항</label>
+  <textarea id="specialNote"></textarea>
+
+  <label>아차사고 / 건의사항</label>
+  <textarea id="suggestion"></textarea>
+
+  <label>작업 종료 서명</label>
+  <div class="signature-wrap">
+    <canvas id="signEnd" class="signature-pad"></canvas>
+    <div class="signature-actions">
+      <button id="clearSign" class="sub-btn" type="button">서명 지우기</button>
+    </div>
+  </div>
+
+  <button id="endBtn" class="primary" disabled>무사고 종료 확인</button>
+  <div id="endMsg" class="notice"></div>
+</div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, query, where, getDocs, doc, setDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* Firebase */
+const app = initializeApp({
+  apiKey:"AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain:"dj-safety.firebaseapp.com",
+  projectId:"dj-safety"
+});
+const db = getFirestore(app);
+
+/* DOM */
+const siteId = document.getElementById("siteId");
+const workDate = document.getElementById("workDate");
+const workerName = document.getElementById("workerName");
+const birthSelect = document.getElementById("birthSelect");
+const startInfo = document.getElementById("startInfo");
+const startInfoBox = document.getElementById("startInfoBox");
+const endSection = document.getElementById("endSection");
+const endBtn = document.getElementById("endBtn");
+const endMsg = document.getElementById("endMsg");
+
+workDate.value = new Date().toISOString().slice(0,10);
+
+/* ===== 서명 ===== */
+let signed=false, canvas, ctx, drawing=false, lx=0, ly=0, signInited=false;
+
+function initSignature(){
+  if(signInited) return;
+  canvas=document.getElementById("signEnd");
+  const r=canvas.getBoundingClientRect();
+  if(r.width===0) return requestAnimationFrame(initSignature);
+  signInited=true;
+
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=r.width*dpr;
+  canvas.height=r.height*dpr;
+  ctx=canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.lineWidth=4.8;
+  ctx.lineCap="round";
+
+  const pos=e=>{
+    const p=e.touches?e.touches[0]:e;
+    const rc=canvas.getBoundingClientRect();
+    return{x:p.clientX-rc.left,y:p.clientY-rc.top};
+  };
+
+  canvas.onmousedown=e=>{drawing=true;signed=true;({x:lx,y:ly}=pos(e));endBtn.disabled=false;}
+  canvas.onmousemove=e=>{
+    if(!drawing) return;
+    const p=pos(e);
+    ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();
+    lx=p.x;ly=p.y;
+  };
+  canvas.onmouseup=()=>drawing=false;
+
+  document.getElementById("clearSign").onclick=()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    signed=false;
+    endBtn.disabled=true;
+  };
+}
+
+/* ===== 조회 ===== */
+let selectedDocId=null;
+workerName.oninput=async()=>{
+  const name=workerName.value.trim();
+  if(name.length<2) return;
+
+  startInfo.style.display="none";
+  endSection.style.display="none";
+  signInited=false;
+
+  const q=query(
+    collection(db,"sites",siteId.value,"workerLogs"),
+    where("date","==",workDate.value),
+    where("name","==",name)
+  );
+  const snap=await getDocs(q);
+  if(snap.empty) return;
+
+  const d=snap.docs[0];
+  selectedDocId=d.id;
+  const data=d.data();
+
+  startInfoBox.innerHTML=`
+    <b>작업 시작:</b> ${data.startAt?.toDate().toLocaleString()}<br>
+    <b>위험요인:</b> ${(data.risks||[]).length}건
+  `;
+  startInfo.style.display="block";
+  endSection.style.display="block";
+  initSignature();
+};
+
+/* ===== 저장 ===== */
+endBtn.onclick=async()=>{
+  if(!signed) return alert("서명 필요");
+
+  await setDoc(
+    doc(db,"sites",siteId.value,"workerLogs",selectedDocId),
+    {
+      endSignature:canvas.toDataURL(),
+      specialNote:document.getElementById("specialNote").value,
+      suggestion:document.getElementById("suggestion").value,
+      endAt:serverTimestamp()
+    },
+    {merge:true}
+  );
+  endMsg.innerText="무사고로 작업을 종료했습니다.";
+  endBtn.disabled=true;
+};
+</script>
+</body>
+</html>
