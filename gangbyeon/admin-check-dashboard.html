@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>관리자 대시보드 | 강변아이파크</title>
+<title>관리자 대시보드 | 위험요인 확인 현황</title>
 
-<!-- SheetJS -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <!-- XlsxPopulate -->
 <script src="https://unpkg.com/xlsx-populate/browser/xlsx-populate.min.js"></script>
+<!-- SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -37,7 +37,7 @@ button:hover{opacity:.9}
 
 <body>
 
-<header>관리자 대시보드 · 강변아이파크</header>
+<header>관리자 대시보드 · 강변아이파크 위험요인 확인 / 출력장</header>
 
 <main>
 
@@ -47,7 +47,7 @@ button:hover{opacity:.9}
   <div class="row">
     <div>
       <label>현장 ID</label>
-      <input id="siteId" value="gangbyeon_ipark" readonly>
+      <input id="siteId" value="gangbyeon-ipark" disabled>
     </div>
     <div>
       <label>조회 시작일</label>
@@ -58,7 +58,7 @@ button:hover{opacity:.9}
       <input id="endDate" type="date">
     </div>
     <div>
-      <label>이름 필터 (선택)</label>
+      <label>근로자 이름 (선택)</label>
       <input id="nameFilter" placeholder="예: 김대홍">
     </div>
     <div>
@@ -86,11 +86,14 @@ button:hover{opacity:.9}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, collection, query, where, getDocs, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ================= Firebase ================= */
+/* ================= 현장 고정 설정 ================= */
+const SITE_ID = "gangbyeon-ipark";
+const SITE_NAME = "강변아이파크";
+
+/* Firebase */
 const app = initializeApp({
   apiKey: "AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
   authDomain: "dj-safety.firebaseapp.com",
@@ -98,8 +101,6 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-/* ================= DOM ================= */
-const siteId = document.getElementById("siteId");
 const startDate = document.getElementById("startDate");
 const endDate = document.getElementById("endDate");
 const nameFilter = document.getElementById("nameFilter");
@@ -111,7 +112,7 @@ const loadBtn = document.getElementById("loadBtn");
 
 let records = [];
 
-/* 날짜 기본값 */
+/* 오늘 날짜 기본 */
 const today = new Date().toISOString().slice(0,10);
 startDate.value = today;
 endDate.value = today;
@@ -121,21 +122,18 @@ loadBtn.onclick = async () => {
   records = [];
   listBox.innerHTML = "불러오는 중...";
 
-  const start = Timestamp.fromDate(new Date(startDate.value + "T00:00:00"));
-  const end   = Timestamp.fromDate(new Date(endDate.value + "T23:59:59"));
-
   const q = query(
-    collection(db,"sites",siteId.value,"equipmentLogs"),
-    where("startAt", ">=", start),
-    where("startAt", "<=", end)
+    collection(db,"sites",SITE_ID,"workerLogs"),
+    where("date",">=",startDate.value),
+    where("date","<=",endDate.value)
   );
 
   const snap = await getDocs(q);
   listBox.innerHTML = "";
 
-  snap.forEach(docSnap=>{
-    const d = docSnap.data();
-    if(nameFilter.value && !d.operatorName?.includes(nameFilter.value)) return;
+  snap.forEach(doc=>{
+    const d = doc.data();
+    if(nameFilter.value && !d.name.includes(nameFilter.value)) return;
 
     const status = d.endAt
       ? `<span class="badge-ok">종료</span>`
@@ -144,11 +142,8 @@ loadBtn.onclick = async () => {
     const div = document.createElement("div");
     div.className = "item";
     div.innerHTML = `
-      <b>${d.operatorName}</b> ${status}<br>
-      <span class="muted">
-        장비번호: ${d.equipmentId || "-"} ·
-        시작: ${d.startAt.toDate().toLocaleString()}
-      </span>
+      <b>${d.name}</b> ${status}<br>
+      <span class="muted">${d.date} · ${d.jobType || "-"}</span>
 
       <h4>작업 시작 서명</h4>
       ${d.startSignature ? `<img class="sig-img" src="${d.startSignature}">` : "없음"}
@@ -159,9 +154,9 @@ loadBtn.onclick = async () => {
       <div class="risk">
         ${(d.risks||[]).map(r=>`
           <div>
-            <b>${r.category || "위험요인"}</b><br>
-            ${r.detail || ""}<br>
-            <span class="muted">대책: ${r.counter || ""}</span>
+            <b>${r.category}</b><br>
+            ${r.detail}<br>
+            <span class="muted">대책: ${r.counter}</span>
           </div>
         `).join("")}
       </div>
@@ -169,17 +164,18 @@ loadBtn.onclick = async () => {
     listBox.appendChild(div);
 
     records.push({
-      이름: d.operatorName,
-      장비번호: d.equipmentId,
-      현장ID: siteId.value,
-      시작시간: d.startAt.toDate().toLocaleString(),
-      상태: d.endAt ? "종료" : "미종료",
-      위험요인: (d.risks||[]).map(r=>r.detail).join(" / ")
+      이름: d.name,
+      직종: d.jobType || "",
+      생년월일: d.birth || "",
+      현장ID: SITE_ID,
+      작업일: d.date,
+      보율: 1.0,
+      위험요인: (d.risks||[]).map(r=>`${r.category}:${r.detail}`).join(" / ")
     });
   });
 
   if(!records.length){
-    listBox.innerHTML = "<div class='muted'>조회 결과 없음</div>";
+    listBox.innerHTML = "<div class='muted'>데이터 없음</div>";
   }
 };
 
@@ -188,8 +184,8 @@ csvBtn.onclick = () => {
   if(!records.length) return alert("데이터 없음");
   const ws = XLSX.utils.json_to_sheet(records);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "data");
-  XLSX.writeFile(wb, `equipment_${startDate.value}_${endDate.value}.csv`);
+  XLSX.utils.book_append_sheet(wb,ws,"data");
+  XLSX.writeFile(wb,`worker_${SITE_ID}_${startDate.value}_${endDate.value}.csv`);
 };
 
 /* ================= 출력장 엑셀 ================= */
@@ -203,20 +199,20 @@ excelBtn.onclick = async () => {
   const wb = await XlsxPopulate.fromDataAsync(buf);
   const sh = wb.sheet(0);
 
-  sh.cell("C3").value(`현장명 : 강변아이파크`);
+  sh.cell("C3").value(`현장명 : ${SITE_NAME}`);
 
   records.forEach((r,i)=>{
-    const row = 5 + i;
+    const row = 5+i;
     sh.cell(`A${row}`).value(i+1);
-    sh.cell(`C${row}`).value("장비작업");
+    sh.cell(`C${row}`).value(r.직종);
     sh.cell(`I${row}`).value(r.이름);
-    sh.cell(`O${row}`).value(1.0);
+    sh.cell(`O${row}`).value(r.보율);
   });
 
   const blob = await wb.outputAsync("blob");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `출력장_강변아이파크_${startDate.value}.xlsx`;
+  a.download = `출력장_${SITE_NAME}_${startDate.value}.xlsx`;
   a.click();
 };
 </script>

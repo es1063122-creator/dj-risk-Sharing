@@ -58,9 +58,13 @@ h1{
   cursor:pointer;
   margin-top:14px;
 }
-.start{
+.worker{
   background:linear-gradient(135deg,#16a34a,#22c55e);
   color:#fff;
+}
+.equipment{
+  background:linear-gradient(135deg,#f59e0b,#fbbf24);
+  color:#1f2937;
 }
 .admin{
   background:#004080;
@@ -91,9 +95,14 @@ h1{
     통합 안전관리
   </div>
 
-  <!-- 근로자 -->
-  <button class="btn start" onclick="go('worker-gate.html')">
-    👷 작업 시작 / 종료
+  <!-- 근로자 작업 -->
+  <button class="btn worker" onclick="go('worker-gate.html')">
+    👷 근로자 작업 시작 / 종료
+  </button>
+
+  <!-- 장비 작업 -->
+  <button class="btn equipment" onclick="go('equipment-log.html')">
+    🚜 장비 작업 시작
   </button>
 
   <!-- 관리자 -->
