@@ -112,7 +112,10 @@ const loadBtn = document.getElementById("loadBtn");
 let records = [];
 
 /* 날짜 기본값 */
-const today = new Date().toISOString().slice(0,10);
+const todayLocal = new Date();
+todayLocal.setMinutes(todayLocal.getMinutes() - todayLocal.getTimezoneOffset());
+const today = todayLocal.toISOString().slice(0, 10);
+
 startDate.value = today;
 endDate.value = today;
 

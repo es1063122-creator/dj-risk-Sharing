@@ -166,7 +166,13 @@ const db = getFirestore(app);
 
 /* 🔒 현장 고정 (김해사이언스) */
 const siteId = "gimhae-science";
-const today = new Date().toISOString().slice(0,10);
+function getTodayLocal() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+}
+
+const today = getTodayLocal();
 
 /* DOM */
 const workerList = document.getElementById("workerList");

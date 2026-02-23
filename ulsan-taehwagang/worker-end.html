@@ -198,7 +198,9 @@ const endSection = document.getElementById("endSection");
 const endBtn = document.getElementById("endBtn");
 const endMsg = document.getElementById("endMsg");
 
-workDate.value = new Date().toISOString().slice(0,10);
+const todayLocal = new Date();
+todayLocal.setMinutes(todayLocal.getMinutes() - todayLocal.getTimezoneOffset());
+workDate.value = todayLocal.toISOString().slice(0, 10);
 
 /* ===== 서명 ===== */
 let signed=false, canvas, ctx, drawing=false, lx=0, ly=0, signInited=false;

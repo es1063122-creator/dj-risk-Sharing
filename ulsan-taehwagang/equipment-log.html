@@ -181,8 +181,13 @@ import {
 
 /* ================= 기본 ================= */
 const SITE_ID = "ulsan-taehwagang";
-document.getElementById("workDate").value =
-  new Date().toISOString().slice(0,10);
+function getTodayLocal() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+}
+
+document.getElementById("workDate").value = getTodayLocal();
 
 /* ================= Firebase ================= */
 const app = initializeApp({
