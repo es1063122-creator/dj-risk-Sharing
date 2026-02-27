@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -226,14 +227,48 @@ function initSignature(){
     return{x:p.clientX-rc.left,y:p.clientY-rc.top};
   };
 
-  canvas.onmousedown=e=>{drawing=true;signed=true;({x:lx,y:ly}=pos(e));endBtn.disabled=false;}
-  canvas.onmousemove=e=>{
+  /* ===== 마우스 ===== */
+  canvas.addEventListener("mousedown",e=>{
+    drawing=true;
+    signed=true;
+    ({x:lx,y:ly}=pos(e));
+    endBtn.disabled=false;
+  });
+
+  canvas.addEventListener("mousemove",e=>{
     if(!drawing) return;
     const p=pos(e);
-    ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(lx,ly);
+    ctx.lineTo(p.x,p.y);
+    ctx.stroke();
     lx=p.x;ly=p.y;
-  };
-  canvas.onmouseup=()=>drawing=false;
+  });
+
+  canvas.addEventListener("mouseup",()=>drawing=false);
+  canvas.addEventListener("mouseleave",()=>drawing=false);
+
+  /* ===== 모바일 터치 ===== */
+  canvas.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    drawing=true;
+    signed=true;
+    ({x:lx,y:ly}=pos(e));
+    endBtn.disabled=false;
+  },{passive:false});
+
+  canvas.addEventListener("touchmove",e=>{
+    e.preventDefault();
+    if(!drawing) return;
+    const p=pos(e);
+    ctx.beginPath();
+    ctx.moveTo(lx,ly);
+    ctx.lineTo(p.x,p.y);
+    ctx.stroke();
+    lx=p.x;ly=p.y;
+  },{passive:false});
+
+  canvas.addEventListener("touchend",()=>drawing=false);
 
   document.getElementById("clearSign").onclick=()=>{
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -241,7 +276,6 @@ function initSignature(){
     endBtn.disabled=true;
   };
 }
-
 /* ===== 조회 ===== */
 let selectedDocId=null;
 workerName.oninput=async()=>{
