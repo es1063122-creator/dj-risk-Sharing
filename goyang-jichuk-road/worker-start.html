@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>작업 시작 | 동진토건(주)</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --blue:#004080;
+  --blue2:#1e66d0;
+  --mint:#00b8a9;
+  --bg:#f2f6ff;
+
+  --hi:#ff3b30;
+  --md:#ff9f0a;
+  --lo:#34c759;
+
+  --line:#dbe5ff;
+  --text:#0b1b3b;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Noto Sans KR",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 10% 10%, #e8f0ff 0%, transparent 42%),
+    radial-gradient(circle at 90% 20%, #e0f7f5 0%, transparent 42%),
+    var(--bg);
+}
+main{max-width:920px;margin:20px auto;padding:0 16px}
+
+/* ===== 카드 ===== */
+.card{
+  position:relative;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 18px 50px rgba(0,64,128,.18);
+  padding:26px;
+  margin-bottom:26px;
+  overflow:hidden;
+}
+.card::before{
+  content:"";
+  position:absolute;left:0;top:0;width:100%;height:7px;
+  background:linear-gradient(90deg,var(--blue2),var(--mint));
+}
+.h2row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+h2{
+  margin:0 0 18px;
+  font-size:23px;
+  font-weight:900;
+  color:var(--blue);
+}
+.subtle{
+  color:#52607a;
+  font-size:13px;
+  font-weight:800;
+  margin-bottom:18px;
+}
+
+/* ===== 라벨/입력 ===== */
+label{
+  font-size:15px;
+  font-weight:900;
+  color:#223;
+  display:block;
+  margin-top:16px;
+}
+input,select{
+  width:100%;
+  padding:18px;
+  margin-top:7px;
+  border-radius:16px;
+  border:2px solid var(--line);
+  font-size:17px;
+  background:#f9fbff;
+}
+input:focus,select:focus{
+  outline:none;
+  border-color:var(--blue2);
+  box-shadow:0 0 0 4px rgba(30,102,208,.2);
+}
+
+/* 필수 입력 강조 */
+.important{
+  background:linear-gradient(180deg,#eef4ff,#ffffff);
+  border-color:var(--blue2);
+  font-weight:900;
+  font-size:18px;
+}
+
+/* ===== 위험요인 영역 ===== */
+.legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin:-6px 0 14px;
+}
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:13px;
+  border:1px solid rgba(0,0,0,.06);
+  background:#f7faff;
+}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.dot.hi{background:var(--hi)}
+.dot.md{background:var(--md)}
+.dot.lo{background:var(--lo)}
+
+/* 위험요인 카드 */
+.risk-card{
+  position:relative;
+  border-radius:18px;
+  padding:16px 16px 16px 60px;
+  margin-top:16px;
+  background:linear-gradient(135deg,#fff,#f4f8ff);
+  box-shadow:0 10px 24px rgba(0,64,128,.12);
+  transition:.15s;
+  border:1px solid rgba(0,0,0,.04);
+}
+.risk-card::before{
+  content:"⚠";
+  position:absolute;
+  left:16px; top:16px;
+  font-size:26px;
+  opacity:.95;
+}
+.risk-card::after{
+  content:"";
+  position:absolute;left:0;top:0;width:7px;height:100%;
+  border-radius:18px 0 0 18px;
+  background:var(--accent, var(--md));
+}
+.risk-card.checked{
+  background:linear-gradient(135deg,#e8f4ff,#ffffff);
+  box-shadow:0 14px 30px rgba(0,64,128,.2);
+  transform:translateY(-1px);
+}
+.risk-card label{margin:0;cursor:pointer}
+.risk-card input[type="checkbox"]{
+  transform:scale(1.75);
+  margin-right:12px;
+}
+.risk-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.risk-title{
+  font-size:17px;
+  font-weight:900;
+}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  color:#fff;
+  background:var(--accent, var(--md));
+}
+.risk-desc{
+  margin-top:7px;
+  font-size:15px;
+  line-height:1.75;
+  color:#24324a;
+}
+.risk-counter{
+  margin-top:9px;
+  font-size:14px;
+  font-weight:900;
+  color:var(--blue2);
+  background:rgba(30,102,208,.08);
+  border:1px solid rgba(30,102,208,.18);
+  padding:9px 12px;
+  border-radius:14px;
+}
+
+/* ===== 서명 ===== */
+.signature-wrap{
+  margin-top:16px;
+  padding:16px;
+  border-radius:20px;
+  border:3px dashed var(--blue2);
+  background:linear-gradient(180deg,#f0f6ff,#ffffff);
+}
+.signature-pad{
+  width:100%;
+  height:230px;
+  background:#fff;
+  border-radius:14px;
+  touch-action:none;
+}
+.signature-hint{
+  text-align:center;
+  margin-top:10px;
+  font-size:14px;
+  font-weight:900;
+  color:#52607a;
+}
+.signature-actions{
+  display:flex;
+  gap:14px;
+  margin-top:14px;
+}
+.sub-btn{
+  flex:1;
+  padding:16px;
+  border-radius:16px;
+  font-weight:900;
+  border:none;
+  cursor:pointer;
+  background:linear-gradient(135deg,#e6f0ff,#cfe2ff);
+  color:var(--blue2);
+}
+
+/* ===== 메인 버튼 ===== */
+button.primary{
+  width:100%;
+  padding:22px;
+  border:none;
+  border-radius:22px;
+  font-weight:900;
+  font-size:20px;
+  background:linear-gradient(135deg,var(--blue2),var(--mint));
+  color:#fff;
+  cursor:pointer;
+  margin-top:24px;
+  box-shadow:0 12px 30px rgba(0,64,128,.25);
+}
+button.primary:disabled{
+  background:#9aa7bd;
+  box-shadow:none;
+  cursor:not-allowed;
+}
+
+.notice{
+  text-align:center;
+  margin-top:18px;
+  font-weight:900;
+  font-size:18px;
+  color:var(--blue2);
+}
+
+hr.sep{
+  border:none;
+  border-top:1px dashed rgba(0,64,128,.25);
+  margin:14px 0 10px;
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<!-- 기본 정보 -->
+<div class="card">
+  <div class="h2row">
+    <h2>근로자 정보 (작업 시작)</h2>
+    <div class="subtle">필수: 이름 · 생년월일 · 위험요인 확인 · 서명</div>
+  </div>
+
+  <label>현장</label>
+  <input value="고양지축지구 도로공사" disabled>
+
+  <label>작업 날짜</label>
+  <input id="workDate" type="date">
+
+  <label>이름 (필수)</label>
+  <input id="workerName" class="important" placeholder="이름 입력">
+
+  <label>생년월일 (필수)</label>
+  <input id="birth" class="important" maxlength="8" placeholder="예: 80.02.04">
+
+  <label>공종 (선택)</label>
+  <select id="jobType">
+    <option value="">선택 안함</option>
+    <option>보통인부</option>
+    <option>용접</option>
+    <option>철근</option>
+    <option>목수</option>
+    <option>관로</option>
+    <option>경계석</option>
+    <option>항타기</option>
+    <option>기타</option>
+  </select>
+</div>
+
+<!-- 위험요인 -->
+<div class="card">
+  <div class="h2row">
+    <h2>금일 적용 위험요인</h2>
+    <div class="legend">
+      <span class="pill"><span class="dot hi"></span> 상(High)</span>
+      <span class="pill"><span class="dot md"></span> 중(Medium)</span>
+      <span class="pill"><span class="dot lo"></span> 하(Low)</span>
+    </div>
+  </div>
+
+  <div id="riskBox">불러오는 중...</div>
+</div>
+
+<!-- 서약 -->
+<div class="card">
+  <h2>작업 시작 서약</h2>
+  <p style="margin:0;color:#24324a;font-weight:800;line-height:1.7">
+    본인은 금일 작업 전 위험요인을 모두 확인하였으며 안전수칙을 준수할 것을 서약합니다.
+  </p>
+
+  <hr class="sep">
+
+  <div class="signature-wrap">
+    <canvas id="signStart" class="signature-pad"></canvas>
+    <div class="signature-hint">손가락 또는 마우스로 서명해 주세요</div>
+    <div class="signature-actions">
+      <button id="clearSign" class="sub-btn" type="button">서명 지우기</button>
+    </div>
+  </div>
+
+  <button id="startBtn" class="primary" disabled>작업 시작</button>
+  <div id="msg" class="notice"></div>
+</div>
+
+</main>
+
+<script type="module">
+/* ================= 공통 설정 ================= */
+const SITE_ID = "goyang-jichuk-road";
+
+const workDate = document.getElementById("workDate");
+const workerName = document.getElementById("workerName");
+const birthInput = document.getElementById("birth");
+const jobType = document.getElementById("jobType");
+const riskBox = document.getElementById("riskBox");
+const startBtn = document.getElementById("startBtn");
+const msg = document.getElementById("msg");
+
+/* ===== 날짜 기본값 (오늘) + 수정 가능 ===== */
+const now = new Date();
+const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+workDate.value = todayStr;
+
+/* ===== 생년월일 포맷 ===== */
+birthInput.addEventListener("input", ()=>{
+  let v = birthInput.value.replace(/[^\d]/g,"");
+  if(v.length >= 6) birthInput.value = `${v.slice(0,2)}.${v.slice(2,4)}.${v.slice(4,6)}`;
+  checkReady();
+});
+
+/* ================= Firebase ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyAk4jLw9XKxxInc8ua7fZWGOJQKNV7gnzo",
+  authDomain:"dj-safety.firebaseapp.com",
+  projectId:"dj-safety"
+});
+const db = getFirestore(app);
+
+/* ================= 위험도 판정 =================
+- risk.level / risk.severity가 있으면 우선 사용 (예: "high"|"medium"|"low" 또는 "상"|"중"|"하")
+- 없으면 키워드 기반 자동 판정
+*/
+function normalizeLevel(v){
+  if(!v) return "";
+  const s = String(v).toLowerCase().trim();
+  if(s === "high" || s === "h" || s === "상" || s.includes("high")) return "high";
+  if(s === "low"  || s === "l" || s === "하" || s.includes("low"))  return "low";
+  if(s === "medium" || s === "mid" || s === "m" || s === "중" || s.includes("med")) return "medium";
+  return "";
+}
+function inferLevelFromText(text){
+  const t = (text || "").toLowerCase();
+
+  // 상(High) 키워드
+  const high = ["추락","낙하","전도","붕괴","매몰","끼임","협착","감전","전기","폭발","화재","질식","가스","중장비","굴착기","크레인","양중","충돌","낙상","절단","용접","화학","밀폐공간"];
+  if(high.some(k => t.includes(k))) return "high";
+
+  // 하(Low) 키워드(정리/미끄럼 등 비교적 경미)
+  const low = ["정리","청소","가벼운","소음","비산","먼지","경미","주의","가벼움"];
+  if(low.some(k => t.includes(k))) return "low";
+
+  // 기본은 중(Medium)
+  return "medium";
+}
+function getRiskLevel(r){
+  const direct = normalizeLevel(r.level || r.severity || r.riskLevel);
+  if(direct) return direct;
+  return inferLevelFromText(`${r.category||""} ${r.detail||""} ${r.counter||""}`);
+}
+function levelUi(level){
+  if(level==="high")   return { badge:"상(High)", accent:"var(--hi)" };
+  if(level==="low")    return { badge:"하(Low)",  accent:"var(--lo)" };
+  return               { badge:"중(Medium)",accent:"var(--md)" };
+}
+
+/* ================= 서명(모바일 최적화) =================
+   ✅ 여기만 “확실히 수정”된 부분입니다.
+   - offsetWidth/offsetHeight 사용 X
+   - getBoundingClientRect() 사용
+   - start/move에서 preventDefault()
+   - requestAnimationFrame으로 1프레임 뒤 초기화
+*/
+let signed = false;
+let canvas, ctx;
+let drawing = false, lx = 0, ly = 0;
+let signReady = false;
+
+function initSignature(){
+  canvas = document.getElementById("signStart");
+  if(!canvas) return;
+
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+
+  // 혹시라도 레이아웃 타이밍으로 0이면 다음 프레임 재시도
+  if(rect.width === 0 || rect.height === 0){
+    requestAnimationFrame(initSignature);
+    return;
+  }
+
+  canvas.width  = Math.floor(rect.width * ratio);
+  canvas.height = Math.floor(rect.height * ratio);
+
+  ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 4.5; // 손가락 기준
+
+  const pos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const p = (e.touches && e.touches[0]) ? e.touches[0] : e;
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  };
+
+  const start = (e) => {
+    e.preventDefault();
+    drawing = true;
+    signed = true;
+    const p = pos(e);
+    lx = p.x; ly = p.y;
+    checkReady();
+  };
+
+  const move = (e) => {
+    if(!drawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lx = p.x; ly = p.y;
+  };
+
+  const end = () => { drawing = false; };
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  canvas.addEventListener("mouseup", end);
+  canvas.addEventListener("mouseleave", end);
+
+  canvas.addEventListener("touchstart", start, { passive:false });
+  canvas.addEventListener("touchmove", move, { passive:false });
+  canvas.addEventListener("touchend", end);
+
+  document.getElementById("clearSign").onclick = () => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    signed = false;
+    checkReady();
+  };
+
+  signReady = true;
+}
+
+function getSignature(){
+  return signReady && canvas ? canvas.toDataURL() : "";
+}
+
+// 초기화(레이아웃 안정 후)
+requestAnimationFrame(initSignature);
+// 회전/리사이즈 시 캔버스 재세팅(서명은 초기화됨)
+window.addEventListener("resize", () => {
+  // 서명 중에는 불편하니, 이미 서명된 상태면 건드리지 않음(원하면 항상 재세팅으로 바꿔도 됨)
+  if(signed) return;
+  signReady = false;
+  requestAnimationFrame(initSignature);
+});
+
+/* ================= 위험요인 로드/체크 ================= */
+let todayRisks = [];
+let checkedCount = 0;
+
+function resetChecks(){
+  checkedCount = 0;
+  checkReady();
+}
+
+async function loadRisks(){
+  riskBox.innerHTML = "불러오는 중...";
+  todayRisks = [];
+  resetChecks();
+
+  const snap = await getDocs(collection(db,"sites",SITE_ID,"riskSets"));
+  riskBox.innerHTML = "";
+
+  const t = new Date(workDate.value);
+
+  snap.forEach(d=>{
+    const r = d.data();
+    const s = new Date(r.startDate);
+    const e = new Date(r.endDate);
+    if(t >= s && t <= e){
+      (r.risks || []).forEach(x => todayRisks.push(x));
+    }
+  });
+
+  if(!todayRisks.length){
+    riskBox.innerHTML = "적용 중 위험요인 없음";
+    return;
+  }
+
+  todayRisks.forEach((r, idx)=>{
+    const level = getRiskLevel(r);
+    const ui = levelUi(level);
+
+    const div = document.createElement("div");
+    div.className = "risk-card";
+    div.style.setProperty("--accent", ui.accent);
+
+    div.innerHTML = `
+      <label>
+        <div class="risk-top">
+          <input type="checkbox" class="rchk">
+          <span class="risk-title">${r.category ?? "위험요인"}</span>
+          <span class="badge">${ui.badge}</span>
+        </div>
+        <div class="risk-desc">${r.detail ?? ""}</div>
+        <div class="risk-counter">대책: ${r.counter ?? ""}</div>
+      </label>
+    `;
+
+    const chk = div.querySelector(".rchk");
+    chk.onchange = () => {
+      div.classList.toggle("checked", chk.checked);
+      checkedCount += chk.checked ? 1 : -1;
+      checkReady();
+    };
+
+    riskBox.appendChild(div);
+  });
+
+  checkReady();
+}
+
+/* 날짜 변경 시 위험요인 즉시 변경 */
+workDate.addEventListener("change", loadRisks);
+
+/* ================= 시작 버튼 활성 조건 =================
+- 이름 입력
+- 생년월일 입력
+- 위험요인 전체 체크(checkedCount === todayRisks.length)
+- 서명 완료(signed)
+*/
+function checkReady(){
+  const ok =
+    workerName.value.trim() !== "" &&
+    birthInput.value.trim() !== "" &&
+    signed === true &&
+    (todayRisks.length === 0 ? true : checkedCount === todayRisks.length);
+
+  startBtn.disabled = !ok;
+}
+
+workerName.addEventListener("input", checkReady);
+
+/* ================= 작업 시작(저장 + 이동) ================= */
+startBtn.onclick = async () => {
+  const name = workerName.value.trim();
+  const birth = birthInput.value.trim();
+  const job = jobType.value || null;
+  const date = workDate.value;
+
+  if(!name || !birth){
+    alert("이름과 생년월일을 입력하세요");
+    return;
+  }
+  if(todayRisks.length && checkedCount !== todayRisks.length){
+    alert("위험요인을 모두 확인(체크)해 주세요.");
+    return;
+  }
+  if(!signed){
+    alert("서명해 주세요.");
+    return;
+  }
+
+  const key = `${date}_${name}_${birth}`;
+
+  await setDoc(doc(db,"sites",SITE_ID,"workerLogs",key),{
+    siteId: SITE_ID,
+    date,
+    name,
+    birth,
+    jobType: job,
+    risks: todayRisks,
+    startSignature: getSignature(),
+    startAt: serverTimestamp()
+  });
+
+  msg.innerText = "작업이 시작되었습니다.";
+  setTimeout(()=>location.href="worker-start.html", 800);
+};
+
+loadRisks();
+</script>
+</body>
+</html>
