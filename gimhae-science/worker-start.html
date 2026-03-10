@@ -262,12 +262,84 @@ hr.sep{
   border-top:1px dashed rgba(0,64,128,.25);
   margin:14px 0 10px;
 }
+
+.lang-bar button{
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.lang-bar img{
+width:20px;
+height:14px;
+border-radius:2px;
+}
+
+/* 🌐 언어 버튼 */
+.lang-bar{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+justify-content:center;
+margin:10px auto 20px;
+}
+
+.lang-bar button{
+border:none;
+background:#004080;
+color:white;
+padding:10px 14px;
+border-radius:10px;
+font-weight:800;
+font-size:14px;
+cursor:pointer;
+}
+
+/* 모바일 */
+@media (max-width:600px){
+.lang-bar button{
+flex:1 1 45%;
+font-size:16px;
+padding:12px;
+}
+}
 </style>
 </head>
 
 <body>
-<main>
 
+<!-- 🌐 언어 선택 -->
+<div class="lang-bar">
+
+<button onclick="location.reload()">
+<img src="https://flagcdn.com/w40/kr.png"> 한국어
+</button>
+
+<button onclick="setLang('en')">
+<img src="https://flagcdn.com/w40/us.png"> English
+</button>
+
+<button onclick="setLang('vi')">
+<img src="https://flagcdn.com/w40/vn.png"> Tiếng Việt
+</button>
+
+<button onclick="setLang('zh-CN')">
+<img src="https://flagcdn.com/w40/cn.png"> 中文
+</button>
+
+<button onclick="setLang('mn')">
+<img src="https://flagcdn.com/w40/mn.png"> Монгол
+</button>
+
+<button onclick="setLang('th')">
+<img src="https://flagcdn.com/w40/th.png"> ไทย
+</button>
+
+</div>
+
+<div id="google_translate_element" style="display:none"></div>
+
+<main>
 <!-- 기본 정보 -->
 <div class="card">
   <div class="h2row">
@@ -631,5 +703,57 @@ startBtn.onclick = async () => {
 
 loadRisks();
 </script>
+
+<script>
+function setLang(lang){
+
+  const tryChange = () => {
+    const select = document.querySelector(".goog-te-combo");
+
+    if(select){
+      select.value = lang;
+      select.dispatchEvent(new Event("change"));
+    } else {
+      setTimeout(tryChange,300);
+    }
+  }
+
+  tryChange();
+}
+</script>
+
+<!-- 🌐 구글 번역 -->
+<script src="https://translate.google.com/translate_a/element.js"></script>
+
+<script>
+function googleTranslateElementInit() {
+ new google.translate.TranslateElement(
+   {
+     pageLanguage: 'ko',
+     includedLanguages: 'en,vi,zh-CN,th,mn,uz'
+   },
+   'google_translate_element'
+ );
+}
+
+window.addEventListener("load", googleTranslateElementInit);
+
+function setLang(lang){
+ const tryChange = () => {
+   const select = document.querySelector(".goog-te-combo");
+
+   if(select){
+     select.value = lang;
+     select.dispatchEvent(new Event("change"));
+   } else {
+     setTimeout(tryChange,300);
+   }
+ }
+
+ tryChange();
+}
+</script>
+
+<script src="https://translate.google.com/translate_a/element.js"></script>
 </body>
 </html>
